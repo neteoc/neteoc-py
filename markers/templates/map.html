@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Markers Map</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"/>
+    <link
+      rel="stylesheet"
+      href="{% static 'map.css' %}"/>
+    <link
+      rel="stylesheet"
+      href="{% static 'leaflet.css' %}"
+      crossorigin=""/>
+    <script
+      src="{% static 'leaflet.js' %}"
+      crossorigin=""></script>
+  </head>
+  <body>
+    <div id="map"></div>
+    {{ markers|json_script:"markers-data" }}
+    <script defer src="{% static 'map.js' %}"></script>
+  </body>
+</html>
