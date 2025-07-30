@@ -9,7 +9,9 @@ app_name = "checkin"
 urlpatterns = [
     path("new/", views.new, name="new"),
     path(
-        "report/", login_required(views.report.as_view(), login_url="/admin/login/"), name="report"
+        "report/",
+        login_required(views.report.as_view(), login_url="/admin/login/"),
+        name="report",
     ),
     path(
         "checkout/<int:pk>/",

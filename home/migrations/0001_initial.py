@@ -121,7 +121,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "live",
-                    models.BooleanField(default=True, editable=False, verbose_name="live"),
+                    models.BooleanField(
+                        default=True, editable=False, verbose_name="live"
+                    ),
                 ),
                 (
                     "has_unpublished_changes",
@@ -148,15 +150,21 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "go_live_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="go live date/time"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="go live date/time"
+                    ),
                 ),
                 (
                     "expire_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="expiry date/time"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="expiry date/time"
+                    ),
                 ),
                 (
                     "expired",
-                    models.BooleanField(default=False, editable=False, verbose_name="expired"),
+                    models.BooleanField(
+                        default=False, editable=False, verbose_name="expired"
+                    ),
                 ),
                 ("body", wagtail.fields.RichTextField()),
                 (

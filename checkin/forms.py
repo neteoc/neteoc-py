@@ -51,17 +51,21 @@ class CheckInForm(ModelForm):
         self.cleaned_data["roster_id"] = roster_id
         if not re.match(r"^[A-Za-z]{3}\d{4}$", str(roster_id)):
             self.add_error(
-                "roster_id", "Roster ID must be 3 letters followed by 4 digits (e.g., ABC1234)"
+                "roster_id",
+                "Roster ID must be 3 letters followed by 4 digits (e.g., ABC1234)",
             )
             logger.warning("Invalid roster_id format")
 
         dl_data = self.cleaned_data.get("dl_data", "")
         # AAMVA standard PDF417 barcode data typically starts with "@", "ANSI ", or "AAMVA"
         if not (
-            dl_data.startswith("@") or dl_data.startswith("ANSI ") or dl_data.startswith("AAMVA")
+            dl_data.startswith("@")
+            or dl_data.startswith("ANSI ")
+            or dl_data.startswith("AAMVA")
         ):
             self.add_error(
-                "dl_data", "Driver's License data does not appear to be in AAMVA format."
+                "dl_data",
+                "Driver's License data does not appear to be in AAMVA format.",
             )
             logger.warning("dl_data does not conform to AAMVA standard")
 
@@ -74,6 +78,8 @@ class CheckInForm(ModelForm):
                     "dl_data",
                     "The last line of the data must start with 'Z' and be at least 3 characters long.",
                 )
-                logger.warning("Last line of dl_data does not start with 'Z' or is too short")
+                logger.warning(
+                    "Last line of dl_data does not start with 'Z' or is too short"
+                )
 
         return self.cleaned_data

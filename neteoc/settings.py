@@ -32,6 +32,12 @@ load_loguru(globals(), configure_func=setup_loguru)
 
 logger.debug("Loguru is running")
 
+MAINTENANCE_MODE_STATE_BACKEND = "maintenance_mode.backends.DefaultStorageBackend"
+MAINTENANCE_MODE_IGNORE_ADMIN = True
+MAINTENANCE_MODE_IGNORE_STAFF = True
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+MAINTENANCE_MODE_RETRY_AFTER = 240
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 PROJECT_DIR = Path(__file__).resolve()
@@ -48,7 +54,9 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", cast=str)
 DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
-ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS, cast=str).split(",")
+ALLOWED_HOSTS = config(
+    "DJANGO_ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS, cast=str
+).split(",")
 
 
 # Application definition
@@ -61,6 +69,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_bootstrap5",
+    "maintenance_mode",
     "wagtail.contrib.forms",
     "wagtail.contrib.redirects",
     "wagtail.contrib.settings",
@@ -196,4 +205,15 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 # Wagtail settings
 WAGTAIL_SITE_NAME = "NetEOC"
 WAGTAILADMIN_BASE_URL = "http://127.0.0.1:8000"
-WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "txt", "xlsx", "zip"]
+WAGTAILDOCS_EXTENSIONS = [
+    "csv",
+    "docx",
+    "key",
+    "odt",
+    "pdf",
+    "pptx",
+    "rtf",
+    "txt",
+    "xlsx",
+    "zip",
+]

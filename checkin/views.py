@@ -100,7 +100,8 @@ def checkout(request, pk):
         checkin.save()
 
         messages.success(
-            request, f"{checkin.first_name} {checkin.last_name} has been checked out successfully."
+            request,
+            f"{checkin.first_name} {checkin.last_name} has been checked out successfully.",
         )
 
     # Redirect back to the report page

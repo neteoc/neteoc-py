@@ -21,7 +21,8 @@ class CheckInTable(tables.Table):
             # If not checked out, show checkout button
             checkout_url = reverse("checkin:checkout", kwargs={"pk": record.pk})
             return format_html(
-                '<a href="{}" class="btn btn-sm btn-secondary">Check Out</a>', checkout_url
+                '<a href="{}" class="btn btn-sm btn-secondary">Check Out</a>',
+                checkout_url,
             )
 
     class Meta:

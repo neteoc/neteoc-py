@@ -43,9 +43,13 @@ if __name__ == "__main__":
 
     if os.path.exists(input_filename):
         with open(file=input_filename, mode="r", encoding="utf-8") as input_file:
-            id_card_results = decode_aamva_fields([x for x in input_file.readlines() if x != ""])
+            id_card_results = decode_aamva_fields(
+                [x for x in input_file.readlines() if x != ""]
+            )
 
-            formatted_results_json = json.dumps(id_card_results, sort_keys=True, indent=4)
+            formatted_results_json = json.dumps(
+                id_card_results, sort_keys=True, indent=4
+            )
 
             if argparse_args.output_file is not None:
                 with open(

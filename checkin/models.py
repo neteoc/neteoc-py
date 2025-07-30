@@ -23,7 +23,9 @@ class CheckIn(models.Model):
         help_text="Dollar amount spent on other expenses today. i.e. 64.88",
     )
     expense_notes = models.TextField(
-        blank=True, null=True, help_text="Explain any large expenses or unusual mileage."
+        blank=True,
+        null=True,
+        help_text="Explain any large expenses or unusual mileage.",
     )
     timestamp = models.DateTimeField(auto_now_add=True)
     Check_Out = models.BooleanField(
