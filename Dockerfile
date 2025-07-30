@@ -19,5 +19,6 @@ RUN pip install -r requirements.txt
 # Copy the rest of the application code to the container
 COPY . .
 
+
 # Specify the command to run your Django app
-CMD ["gunicorn", "hatchapp.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "neteoc.wsgi:application", "--bind", "0.0.0.0:8000"]

@@ -20,3 +20,6 @@ serve:
 
 env:
     source .venv/bin/activate
+
+export:
+    uv export --frozen --no-hashes --output-file=requirements.txt

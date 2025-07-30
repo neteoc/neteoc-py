@@ -1,0 +1,14 @@
+services:
+  netoc-web:
+    build: .
+    container_name: netoc-web
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      DJANGO_DEVELOPMENT_MODE: ${DJANGO_DEVELOPMENT_MODE}
+      LOGLEVEL: ${LOGLEVEL}
+    env_file:
+      - .env
