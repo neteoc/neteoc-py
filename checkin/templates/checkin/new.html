@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+
+
+
+{% block content %}
+
+<div class="clearfix">
+         {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="/checkin/" %}
+    </div>
+
+
+<form action = "" method = "post">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <div class="clearfix">
+         {% bootstrap_button button_type="submit" content="Submit" button_class="btn-primary float-start" %}
+         {% bootstrap_button button_type="reset" content="Clear" button_class="btn-danger float-end" %}
+    </div>
+   
+    {% bootstrap_form_errors form %}
+
+</form>
+    
+
+
+{% endblock content %}

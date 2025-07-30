@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load render_table from django_tables2 %}
+
+
+
+{% block content %}
+
+
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            {% bootstrap_button button_type="link" content="Back" button_class="btn-primary" extra_classes="float-start" href="/checkin/" %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+        <h1>Checkin Report</h1>
+        {% render_table table %}
+        </div>
+    </div>
+</div>
+
+
+
+
+<p></p>
+
+
+
+
+{% endblock content %}
