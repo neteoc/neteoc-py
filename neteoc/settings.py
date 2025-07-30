@@ -14,6 +14,25 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 
+from dj_easy_log import load_loguru
+from loguru import logger
+
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
+
+
+def setup_loguru(logger, settings_dict):
+    if DEBUG:
+        logger.add("netoc.log", rotation="10 MB")
+
+
+load_loguru(globals(), configure_func=setup_loguru)
+
+
+logger.debug("Loguru is running")
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 PROJECT_DIR = Path(__file__).resolve()
 BASE_DIR = PROJECT_DIR.parent.parent
@@ -24,9 +43,6 @@ BASE_DIR = PROJECT_DIR.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config("DJANGO_SECRET_KEY", cast=str)
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
 
 
 DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
@@ -44,33 +60,50 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "tailwind",
+    "django_bootstrap5",
+    "wagtail.contrib.forms",
+    "wagtail.contrib.redirects",
+    "wagtail.contrib.settings",
+    "wagtail.embeds",
+    "wagtail.sites",
+    "wagtail.users",
+    "wagtail.snippets",
+    "wagtail.documents",
+    "wagtail.images",
+    "wagtail.search",
+    "wagtail.admin",
+    "wagtail",
+    "django_tables2",
+    "modelcluster",
+    "taggit",
     "theme",
     "home",
+    "checkin",
 ]
 
 
-if DEBUG:
-    # Add django_browser_reload only in DEBUG mode
-    INSTALLED_APPS += ["django_browser_reload"]
+# if DEBUG:
+# Add django_browser_reload only in DEBUG mode
+# INSTALLED_APPS += ["django_browser_reload"]
 
-TAILWIND_APP_NAME = "theme"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
 
-if DEBUG:
-    # Add django_browser_reload middleware only in DEBUG mode
-    MIDDLEWARE += [
-        "django_browser_reload.middleware.BrowserReloadMiddleware",
-    ]
+# if DEBUG:
+# Add django_browser_reload middleware only in DEBUG mode
+# MIDDLEWARE += [
+#     "django_browser_reload.middleware.BrowserReloadMiddleware",
+# ]
 
 ROOT_URLCONF = "neteoc.urls"
 
@@ -129,11 +162,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = "static/"
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -141,3 +169,31 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 MBTILES_DATABASE = BASE_DIR / "demo" / "data" / "berlin.mbtiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATIC_ROOT = BASE_DIR / "static"
+STATIC_URL = "/static/"
+
+
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
+
+
+# Wagtail settings
+WAGTAIL_SITE_NAME = "NetEOC"
+WAGTAILADMIN_BASE_URL = "http://127.0.0.1:8000"
+WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "txt", "xlsx", "zip"]
