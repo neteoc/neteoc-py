@@ -1,6 +1,6 @@
 services:
   netoc-web:
-    build: .
+    image: localhost/netoc:latest
     container_name: netoc-web
     ports:
       - "8000:8000"

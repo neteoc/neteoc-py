@@ -23,3 +23,7 @@ env:
 
 export:
     uv export --frozen --no-hashes --output-file=requirements.txt
+
+run:
+    podman build -t netoc:latest .
+    podman-compose up
