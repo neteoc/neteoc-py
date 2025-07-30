@@ -1,5 +1,6 @@
 .env
 *.sqlite3
+*.log
 
 # Python-generated files
 __pycache__/
