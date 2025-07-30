@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "mtxr.sqltools",
+    "charliermarsh.ruff",
+    "visualstudioexptteam.vscodeintellicode"
+  ]
+}
