@@ -54,9 +54,7 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", cast=str)
 DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
-ALLOWED_HOSTS = config(
-    "DJANGO_ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS, cast=str
-).split(",")
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS, cast=str).split(",")
 
 
 # Application definition

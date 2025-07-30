@@ -59,9 +59,7 @@ class CheckInForm(ModelForm):
         dl_data = self.cleaned_data.get("dl_data", "")
         # AAMVA standard PDF417 barcode data typically starts with "@", "ANSI ", or "AAMVA"
         if not (
-            dl_data.startswith("@")
-            or dl_data.startswith("ANSI ")
-            or dl_data.startswith("AAMVA")
+            dl_data.startswith("@") or dl_data.startswith("ANSI ") or dl_data.startswith("AAMVA")
         ):
             self.add_error(
                 "dl_data",
@@ -78,8 +76,6 @@ class CheckInForm(ModelForm):
                     "dl_data",
                     "The last line of the data must start with 'Z' and be at least 3 characters long.",
                 )
-                logger.warning(
-                    "Last line of dl_data does not start with 'Z' or is too short"
-                )
+                logger.warning("Last line of dl_data does not start with 'Z' or is too short")
 
         return self.cleaned_data
