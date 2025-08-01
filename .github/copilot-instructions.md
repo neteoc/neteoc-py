@@ -2,6 +2,8 @@
 
 This is a web application used in disaster response for tracking people, stuff, and needs.
 
+Basic public pages are managed by Wagtail, a Django-based CMS.
+
 A user is a person. A person might not be a user. A person may be a responder or a civilian or both in any given incident.
 
 An incident is a specific occurrence of a disaster or community event. Like a hurricane, flood, or community festival.
@@ -21,6 +23,14 @@ An incident should have a name that is descriptive and unique. The incident name
 An incident should have a way to attach files and documents related to the incident. This could be done through a file upload system or by linking to external documents. Those documents should be accessible to users with the appropriate permissions.
 
 When an incident is created, the user creating the incident should be automatically set as the owner of the incident. The owner can be changed later by the incident owner or commander.
+
+An incident should have a primary organization associated with it. This organization is the primary entity responsible for the incident and should be displayed on the incident page. Incidents should be able to be associated with other incidents, such as a parent incident or related incidents. This way each organization maintains control over their own incidents and can link them with other organization's incidents for better tracking.
+
+## User Permissions and Access Control
+
+Organizations should configured using [django-organizations](../docs/django-orgs-cookbook.rst)
+
+Users should be able to sign up and create an account, however, they will not be able to do anything other than update their profile until they are invited into an organization.
 
 ## Code Style and Standards
 

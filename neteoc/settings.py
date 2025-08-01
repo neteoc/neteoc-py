@@ -84,6 +84,7 @@ ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS, ca
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
+    "organizations",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",

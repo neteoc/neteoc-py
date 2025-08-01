@@ -169,8 +169,10 @@ django==5.2.4 \
     #   dj-database-url
     #   django-allauth
     #   django-bootstrap5
+    #   django-extensions
     #   django-filter
     #   django-modelcluster
+    #   django-organizations
     #   django-permissionedforms
     #   django-stubs-ext
     #   django-tables2
@@ -198,6 +200,10 @@ django-easy-logging==0.70 \
     --hash=sha256:10dd64047bc32df31f3fafdc29e307f797faeb1a9eef27f6c4d3ec03006802ac \
     --hash=sha256:c318cb34ead1b75483842cae84fcc0dc56dc2fa3bf3e54dd6fba5634732a15cf
     # via neteoc-py
+django-extensions==4.1 \
+    --hash=sha256:0699a7af28f2523bf8db309a80278519362cd4b6e1fd0a8cd4bf063e1e023336 \
+    --hash=sha256:7b70a4d28e9b840f44694e3f7feb54f55d495f8b3fa6c5c0e5e12bcb2aa3cdeb
+    # via django-organizations
 django-filter==25.1 \
     --hash=sha256:1ec9eef48fa8da1c0ac9b411744b16c3f4c31176c867886e4c48da369c407153 \
     --hash=sha256:4fa48677cf5857b9b1347fed23e355ea792464e0fe07244d1fdfb8a806215b80
@@ -212,6 +218,10 @@ django-modelcluster==6.4 \
     --hash=sha256:0102d00e6b884721ba21e32edb716548e0dead7880e130aa2e04854bd384a42f \
     --hash=sha256:839b0ddb4a1a6f5fc7d9f2f029614a84350b41315bdb80a9c8b755baaa2297f2
     # via wagtail
+django-organizations==2.5.0 \
+    --hash=sha256:8cc8cd617dabf68e9118f4f5c7c2dddf89549e18f5696f70a419da3ccecfc17f \
+    --hash=sha256:bb07e31a34a3c973e736499c3386f6d62f8af3128c182073a7fc6063b4700427
+    # via neteoc-py
 django-permissionedforms==0.1 \
     --hash=sha256:4340bb20c4477fffb13b4cc5cccf9f1b1010b64f79956c291c72d2ad2ed243f8 \
     --hash=sha256:d341a961a27cc77fde8cc42141c6ab55cc1f0cb886963cc2d6967b9674fa47d6
