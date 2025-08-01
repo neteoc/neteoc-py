@@ -2,6 +2,7 @@
   "recommendations": [
     "mtxr.sqltools",
     "charliermarsh.ruff",
-    "visualstudioexptteam.vscodeintellicode"
+    "visualstudioexptteam.vscodeintellicode",
+    "monosans.djlint"
   ]
 }
