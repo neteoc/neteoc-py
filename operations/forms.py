@@ -1,11 +1,71 @@
 from django import forms
 from django.forms import ModelForm
 from django.contrib.auth.models import User
-from .models import CheckIn
+from .models import CheckIn, Incident
 from logging import getLogger
 import re
 
 logger = getLogger(__name__)
+
+
+class IncidentForm(ModelForm):
+    """Form for creating and editing incidents"""
+
+    incident_commander = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True),
+        required=False,
+        empty_label="-- Select incident commander --",
+        help_text="The incident commander serves as the primary point of contact",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    start_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"}),
+        help_text="When the incident began or is scheduled to begin",
+    )
+
+    end_date = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"}),
+        help_text="When the incident ended (leave blank if ongoing)",
+    )
+
+    class Meta:
+        model = Incident
+        fields = [
+            "name",
+            "incident_type",
+            "description",
+            "status",
+            "start_date",
+            "end_date",
+            "location",
+            "incident_commander",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "incident_type": forms.Select(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "location": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set user-friendly display names for incident commanders
+        self.fields["incident_commander"].label_from_instance = self.user_label_from_instance
+
+        # Set default start_date to now if not provided
+        if not self.instance.pk and not self.initial.get("start_date"):
+            from django.utils import timezone
+
+            self.initial["start_date"] = timezone.now().strftime("%Y-%m-%dT%H:%M")
+
+    def user_label_from_instance(self, user):
+        """Show user's full name and username for better identification"""
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name} ({user.username})"
+        return user.username
 
 
 class CheckInForm(ModelForm):

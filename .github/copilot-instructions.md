@@ -10,9 +10,23 @@ The owner of an incident has full administrative control over that incident in t
 
 Each incident should also have a user that is the incident commander. This user is the primary point of contact for the incident and has full control over the incident. That user's information should be displayed on the incident page and easily accessible by other users who have permission to view the incident.
 
+It is important to keep track of who has checked in and out of an incident. This is for insurance and safety purposes. The system should allow users to check in and out of incidents, and the incident owner should be able to view all check-ins for that incident. The incident owner and incident commander should also be able to delete/update check-ins if necessary.
 
+## Incident Creation and Management
+
+An incident should have a primary location, a start date, and an end date. The incident should also have a status (active, standby, closed) and an incident type (hurricane, flood, etc.).
+
+An incident should have a name that is descriptive and unique. The incident name should be used to identify the incident in the system.
+
+An incident should have a way to attach files and documents related to the incident. This could be done through a file upload system or by linking to external documents. Those documents should be accessible to users with the appropriate permissions.
+
+When an incident is created, the user creating the incident should be automatically set as the owner of the incident. The owner can be changed later by the incident owner or commander.
 
 ## Code Style and Standards
+
+All basic resources should have basic CRUD functionality and be accessible via the Django admin interface. CRUD functionality should also be available through the web interface for users with the appropriate permissions.
+
+All code should follow the PEP 8 style guide for Python code. Use `uv run ruff` for linting and formatting of Python code.
 
 Run `pre-commit run --all-files` to check code style and standards.
 
@@ -21,8 +35,6 @@ Run `pre-commit run --all-files` to check code style and standards.
 All endpoints other than the wagtail managed public pages should be protected by the `@login_required` decorator.
 
 ## Python Instructions
-
-
 
 The UV tool should be used to manage python.
 
@@ -83,3 +95,11 @@ State - Required
 Zip - Required
 latitude - Optional
 latitude - Optional
+
+# Debugging
+
+When running locally, the `netoc.log` file will contain debug information. This file is located in the root of the project directory. You can tail this file to see real-time logs without needing to start a serpate server:
+
+```bash
+tail -f netoc.log
+```

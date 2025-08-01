@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fa fa-exclamation-triangle me-2"></i>{{ incident.name }}
+        </h1>
+        <div class="btn-group">
+            {% if can_checkin and incident.is_active %}
+                <a href="{% url 'operations:checkin_new' incident_id=incident.id %}"
+                   class="btn btn-success">
+                    <i class="fa fa-plus me-1"></i>Check In Person
+                </a>
+            {% endif %}
+            <a href="{% url 'operations:checkin_report' %}?incident={{ incident.id }}"
+               class="btn btn-outline-primary">
+                <i class="fa fa-chart-line me-1"></i>View Report
+            </a>
+            <a href="{% url 'operations:dashboard' %}"
+               class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+    <!-- Incident Status Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if incident.is_active %}
+                <div class="alert alert-success">
+                    <h5>
+                        <i class="fa fa-check-circle me-2"></i>Active Incident
+                    </h5>
+                    <p class="mb-0">This incident is currently active and accepting check-ins.</p>
+                </div>
+            {% elif incident.status == "STANDBY" %}
+                <div class="alert alert-warning">
+                    <h5>
+                        <i class="fa fa-clock me-2"></i>Standby Status
+                    </h5>
+                    <p class="mb-0">This incident is on standby and not currently accepting check-ins.</p>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary">
+                    <h5>
+                        <i class="fa fa-times-circle me-2"></i>Closed Incident
+                    </h5>
+                    <p class="mb-0">This incident has been closed.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <!-- Incident Information -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Incident Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Type</h6>
+                            <p>{{ incident.get_incident_type_display }}</p>
+                            <h6>Status</h6>
+                            <p>
+                                {% if incident.is_active %}
+                                    <span class="badge bg-success">{{ incident.get_status_display }}</span>
+                                {% elif incident.status == "STANDBY" %}
+                                    <span class="badge bg-warning">{{ incident.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ incident.get_status_display }}</span>
+                                {% endif %}
+                            </p>
+                            {% if incident.location %}
+                                <h6>Location</h6>
+                                <p>
+                                    <i class="fa fa-map-marker-alt me-1"></i>{{ incident.location }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Start Date</h6>
+                            <p>{{ incident.start_date|date:"M d, Y g:i A" }}</p>
+                            {% if incident.end_date %}
+                                <h6>End Date</h6>
+                                <p>{{ incident.end_date|date:"M d, Y g:i A" }}</p>
+                            {% endif %}
+                            <h6>Owner</h6>
+                            <p>
+                                <i class="fa fa-user me-1"></i>{{ incident.owner.get_full_name|default:incident.owner.username }}
+                            </p>
+                        </div>
+                    </div>
+                    {% if incident.description %}
+                        <h6>Description</h6>
+                        <p>{{ incident.description|linebreaks }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Recent Check-ins -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Check-ins</h5>
+                    <a href="{% url 'operations:checkin_report' %}?incident={{ incident.id }}"
+                       class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_checkins %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Roster ID</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for checkin in recent_checkins %}
+                                        <tr>
+                                            <td>{{ checkin.first_name }} {{ checkin.last_name }}</td>
+                                            <td>{{ checkin.roster_id }}</td>
+                                            <td>{{ checkin.timestamp|date:"M d, g:i A" }}</td>
+                                            <td>
+                                                {% if checkin.Check_Out %}
+                                                    <span class="badge bg-secondary">Checked Out</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Checked In</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No check-ins recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Incident Commander Info -->
+            {% if incident.incident_commander %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fa fa-star me-1"></i>Incident Commander
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-primary text-white me-3">
+                                <i class="fa fa-user"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">{{ incident.incident_commander.get_full_name|default:incident.incident_commander.username }}</h6>
+                                <small class="text-muted">Primary Point of Contact</small>
+                                {% if incident.incident_commander.email %}
+                                    <br>
+                                    <small><i class="fa fa-envelope me-1"></i>{{ incident.incident_commander.email }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            <!-- Statistics -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-chart-bar me-1"></i>Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-success mb-0">{{ active_checkins }}</h4>
+                                <small class="text-muted">Currently
+                                    <br>
+                                Checked In</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-info mb-0">{{ total_checkins }}</h4>
+                            <small class="text-muted">Total
+                                <br>
+                            Check-ins</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Quick Actions -->
+            {% if can_edit or can_checkin %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fa fa-bolt me-1"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if can_checkin and incident.is_active %}
+                                <a href="{% url 'operations:checkin_new' incident_id=incident.id %}"
+                                   class="btn btn-success btn-sm">
+                                    <i class="fa fa-plus me-1"></i>Check In Person
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'operations:checkin_report' %}?incident={{ incident.id }}"
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fa fa-chart-line me-1"></i>View Full Report
+                            </a>
+                            {% if can_edit %}
+                                <a href="{% url 'admin:operations_incident_change' incident.id %}"
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="fa fa-edit me-1"></i>Edit Incident
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+    </style>
+{% endblock content %}

@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from .lib.aamva import aamva_2020
 import typing
-from .forms import CheckInForm
+from .forms import CheckInForm, IncidentForm
 from .models import Incident, CheckIn
 from .tables import CheckInTable
 
@@ -84,6 +84,13 @@ def dashboard(request):
         }
         incident_stats.append(stats)
 
+    # Check if user can create incidents
+    can_create_incidents = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or request.user.groups.filter(name="Incident Admins").exists()
+    )
+
     context.update(
         {
             "active_incidents": active_incidents,
@@ -93,6 +100,7 @@ def dashboard(request):
             "active_incidents_count": active_incidents_count,
             "total_checkins_all_time": total_checkins_all_time,
             "current_active_checkins": current_active_checkins,
+            "can_create_incidents": can_create_incidents,
         }
     )
 
@@ -267,3 +275,61 @@ def checkout(request, pk):
 
     # Redirect back to the report page
     return redirect("operations:checkin_report")
+
+
+@login_required()
+def create_incident(request):
+    """Create a new incident"""
+    # Check if user has permission to create incidents
+    if not (
+        request.user.is_superuser
+        or request.user.is_staff
+        or request.user.groups.filter(name="Incident Admins").exists()
+    ):
+        messages.error(request, "You don't have permission to create incidents.")
+        return redirect("operations:dashboard")
+
+    if request.method == "POST":
+        form = IncidentForm(request.POST)
+        if form.is_valid():
+            incident = form.save(commit=False)
+            incident.owner = request.user
+            incident.created_by = request.user
+            incident.save()
+
+            messages.success(request, f"Incident '{incident.name}' has been created successfully!")
+            return redirect("operations:dashboard")
+    else:
+        form = IncidentForm()
+
+    context = {
+        "form": form,
+        "page_title": "Create New Incident",
+    }
+    return render(request, "operations/incident/create.html", context)
+
+
+@login_required()
+def incident_detail(request, incident_id):
+    """Display incident details including incident commander information"""
+    incident = get_object_or_404(Incident, id=incident_id)
+
+    # Check if user has read access to this incident
+    if not incident.has_read_access(request.user):
+        messages.error(request, "You don't have permission to view this incident.")
+        return redirect("operations:dashboard")
+
+    # Get recent check-ins for this incident
+    recent_checkins = (
+        CheckIn.objects.filter(incident=incident).select_related("user").order_by("-timestamp")[:10]
+    )
+
+    context = {
+        "incident": incident,
+        "recent_checkins": recent_checkins,
+        "total_checkins": incident.total_checkins,
+        "active_checkins": incident.active_checkins,
+        "can_edit": incident.has_admin_access(request.user),
+        "can_checkin": incident.has_write_access(request.user),
+    }
+    return render(request, "operations/incident/detail.html", context)

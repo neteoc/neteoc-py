@@ -60,6 +60,14 @@ class Incident(models.Model):
         related_name="owned_incidents",
         help_text="The user who owns and has full control over this incident",
     )
+    incident_commander = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="commanded_incidents",
+        help_text="The incident commander - primary point of contact for this incident",
+    )
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

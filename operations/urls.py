@@ -9,4 +9,6 @@ urlpatterns = [
     path("checkin/new/<int:incident_id>/", views.new, name="checkin_new"),
     path("checkin/report/", views.report.as_view(), name="checkin_report"),
     path("checkin/checkout/<int:pk>/", views.checkout, name="checkin_checkout"),
+    path("incident/create/", views.create_incident, name="incident_create"),
+    path("incident/<int:incident_id>/", views.incident_detail, name="incident_detail"),
 ]

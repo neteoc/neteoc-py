@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fa fa-plus-circle me-2"></i>{{ page_title }}
+        </h1>
+        <a href="{% url 'operations:dashboard' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Incident Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8">{% bootstrap_field form.name %}</div>
+                            <div class="col-md-4">{% bootstrap_field form.incident_type %}</div>
+                        </div>
+                        {% bootstrap_field form.description %}
+                        <div class="row">
+                            <div class="col-md-4">{% bootstrap_field form.status %}</div>
+                            <div class="col-md-8">{% bootstrap_field form.location %}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{% bootstrap_field form.start_date %}</div>
+                            <div class="col-md-6">{% bootstrap_field form.end_date %}</div>
+                        </div>
+                        {% bootstrap_field form.incident_commander %}
+                        <div class="d-flex justify-content-between mt-4">
+                            {% bootstrap_button button_type="submit" content="Create Incident" button_class="btn-success" %}
+                            <a href="{% url 'operations:dashboard' %}"
+                               class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                        {% bootstrap_form_errors form %}
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle me-1"></i>Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>Incident Naming</h6>
+                    <ul class="small">
+                        <li>Use descriptive names like "Hurricane Milton Response"</li>
+                        <li>Include the year for recurring events</li>
+                        <li>Avoid special characters</li>
+                    </ul>
+                    <h6>Incident Commander</h6>
+                    <ul class="small">
+                        <li>Primary point of contact for this incident</li>
+                        <li>Their information will be displayed prominently</li>
+                        <li>Can be changed later if needed</li>
+                        <li>Does not affect system permissions</li>
+                    </ul>
+                    <h6>Status Options</h6>
+                    <ul class="small">
+                        <li>
+                            <strong>Active:</strong> Incident is ongoing
+                        </li>
+                        <li>
+                            <strong>Standby:</strong> Prepared but not active
+                        </li>
+                        <li>
+                            <strong>Closed:</strong> Incident is completed
+                        </li>
+                    </ul>
+                    <div class="alert alert-info mt-3">
+                        <small><i class="fa fa-lightbulb me-1"></i><strong>Tip:</strong> You will be set as the owner of this incident and have full administrative control.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

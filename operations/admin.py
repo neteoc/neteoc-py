@@ -13,12 +13,26 @@ class IncidentAdmin(admin.ModelAdmin):
         "end_date",
         "location",
         "owner",
+        "incident_commander",
         "total_checkins_display",
         "active_checkins_display",
         "created_by",
     ]
-    list_filter = ["status", "incident_type", "start_date", "owner", "created_by"]
-    search_fields = ["name", "description", "location", "owner__username"]
+    list_filter = [
+        "status",
+        "incident_type",
+        "start_date",
+        "owner",
+        "incident_commander",
+        "created_by",
+    ]
+    search_fields = [
+        "name",
+        "description",
+        "location",
+        "owner__username",
+        "incident_commander__username",
+    ]
     readonly_fields = [
         "created_at",
         "updated_at",
@@ -29,7 +43,7 @@ class IncidentAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Basic Information", {"fields": ("name", "incident_type", "description", "status")}),
         ("Dates & Location", {"fields": ("start_date", "end_date", "location")}),
-        ("Management", {"fields": ("owner", "created_by")}),
+        ("Management", {"fields": ("owner", "incident_commander", "created_by")}),
         (
             "Statistics",
             {
