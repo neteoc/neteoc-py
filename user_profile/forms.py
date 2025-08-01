@@ -245,3 +245,32 @@ class UserProfileForm(forms.Form):
         elif not address.location:
             address.location = None
             address.location_accuracy = None
+
+
+class PublicUserProfileForm(ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = [
+            "public_bio",
+            "public_bio_visible",
+            "public_phone",
+            "public_phone_visible",
+            "public_email",
+            "public_email_visible",
+            "public_visible",
+        ]
+        widgets = {
+            "public_bio": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "placeholder": "Short public bio"}
+            ),
+            "public_phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Public phone number"}
+            ),
+            "public_email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "Public email address"}
+            ),
+            "public_bio_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "public_phone_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "public_email_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "public_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fa fa-user me-2"></i>Public Profile: {{ target_user.get_full_name|default:target_user.username }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if target_profile.public_bio_visible and target_profile.public_bio %}
+                        <div class="mb-3">
+                            <strong>Bio:</strong>
+                            <p>{{ target_profile.public_bio }}</p>
+                        </div>
+                    {% endif %}
+                    {% if target_profile.public_phone_visible and target_profile.public_phone %}
+                        <div class="mb-3">
+                            <strong>Phone:</strong>
+                            <span>{{ target_profile.public_phone }}</span>
+                        </div>
+                    {% endif %}
+                    {% if target_profile.public_email_visible and target_profile.public_email %}
+                        <div class="mb-3">
+                            <strong>Email:</strong>
+                            <span>{{ target_profile.public_email }}</span>
+                        </div>
+                    {% endif %}
+                    {% if not target_profile.public_bio and not target_profile.public_phone and not target_profile.public_email %}
+                        <p class="text-muted">No public information available.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="alert alert-info">
+                <i class="fa fa-info-circle"></i>
+                <strong>Note:</strong> This information is only visible to organization members and incident check-ins as allowed.
+            </div>
+        </div>
+    </div>
+{% endblock content %}

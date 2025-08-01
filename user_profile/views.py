@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from .forms import UserProfileForm
+from .forms import UserProfileForm, PublicUserProfileForm
 from .models import UserProfile
 from .serializers import UserRosterSerializer
 
@@ -30,16 +30,33 @@ def profile(request):
     # Get or create the user's profile
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
 
+    # Handle two forms: profile and public profile
     if request.method == "POST":
-        form = UserProfileForm(request.POST, instance=user_profile)
-        if form.is_valid():
-            form.save(request.user)
-            messages.success(request, "Your profile has been updated successfully!")
-            return redirect("user_profile:profile")
+        form_type = request.POST.get("form_type")
+        if form_type == "profile":
+            form = UserProfileForm(request.POST, instance=user_profile)
+            public_profile_form = PublicUserProfileForm(instance=user_profile)
+            if form.is_valid():
+                form.save(request.user)
+                messages.success(request, "Your profile has been updated successfully!")
+                return redirect("user_profile:profile")
+            else:
+                messages.error(request, "Please correct the errors below.")
+        elif form_type == "public_profile":
+            form = UserProfileForm(instance=user_profile)
+            public_profile_form = PublicUserProfileForm(request.POST, instance=user_profile)
+            if public_profile_form.is_valid():
+                public_profile_form.save()
+                messages.success(request, "Your public profile has been updated!")
+                return redirect("user_profile:profile")
+            else:
+                messages.error(request, "Please correct the errors below in your public profile.")
         else:
-            messages.error(request, "Please correct the errors below.")
+            form = UserProfileForm(instance=user_profile)
+            public_profile_form = PublicUserProfileForm(instance=user_profile)
     else:
         form = UserProfileForm(instance=user_profile)
+        public_profile_form = PublicUserProfileForm(instance=user_profile)
 
     # Get user's organization memberships
     user_organizations = []
@@ -52,6 +69,7 @@ def profile(request):
 
     context = {
         "form": form,
+        "public_profile_form": public_profile_form,
         "user_profile": user_profile,
         "created": created,
         "user_organizations": user_organizations,
@@ -108,3 +126,64 @@ class UserRosterAPIView(APIView):
                 {"error": "An error occurred while retrieving user data"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@login_required()
+def edit_public_profile(request):
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == "POST":
+        form = PublicUserProfileForm(request.POST, instance=user_profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your public profile has been updated!")
+            return redirect("user_profile:profile")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = PublicUserProfileForm(instance=user_profile)
+    return render(
+        request,
+        "user_profile/public_profile_edit.html",
+        {"form": form, "user_profile": user_profile},
+    )
+
+
+@login_required()
+def view_public_profile(request, user_id):
+    # Get target user and profile
+    try:
+        target_user = User.objects.get(id=user_id)
+        target_profile = target_user.profile
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        raise Http404("User not found")
+
+    # Access control: must share org or be checked in to incident where target is commander
+    allowed = False
+    if IncidentOrganizationUser:
+        # Shared org
+        my_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        target_orgs = IncidentOrganizationUser.objects.filter(user=target_user).values_list(
+            "organization", flat=True
+        )
+        if set(my_orgs) & set(target_orgs):
+            allowed = True
+    # Incident commander check
+    try:
+        from operations.models import CheckIn
+
+        is_checked_in = CheckIn.objects.filter(
+            user=request.user, incident__incident_commander=target_user, Check_Out=False
+        ).exists()
+        if is_checked_in:
+            allowed = True
+    except Exception:
+        pass
+    if not allowed or not target_profile.public_visible:
+        raise Http404("Not authorized to view this public profile.")
+    return render(
+        request,
+        "user_profile/public_profile_view.html",
+        {"target_user": target_user, "target_profile": target_profile},
+    )

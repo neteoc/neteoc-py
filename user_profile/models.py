@@ -154,6 +154,25 @@ class UserProfile(models.Model):
         related_name="user_profiles",
         help_text="Your normalized home address",
     )
+
+    # Public profile fields
+    public_bio = models.TextField(blank=True, null=True, help_text="Short public bio")
+    public_phone = models.CharField(
+        max_length=20, blank=True, null=True, help_text="Public phone number"
+    )
+    public_email = models.EmailField(blank=True, null=True, help_text="Public email address")
+    public_visible = models.BooleanField(
+        default=False,
+        help_text="Is public profile info visible to org members and incident check-ins?",
+    )
+    public_bio_visible = models.BooleanField(default=True, help_text="Show bio in public profile")
+    public_phone_visible = models.BooleanField(
+        default=False, help_text="Show phone in public profile"
+    )
+    public_email_visible = models.BooleanField(
+        default=False, help_text="Show email in public profile"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
