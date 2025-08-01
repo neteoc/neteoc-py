@@ -1,9 +1,9 @@
 services:
-  netoc-web:
-    image: localhost/netoc:latest
-    container_name: netoc-web
+  neteoc-web:
+    image: neteoc/web:latest
+    container_name: neteoc-web
     ports:
-      - "8000:8000"
+      - "8123:8000"
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}

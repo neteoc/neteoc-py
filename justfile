@@ -27,5 +27,9 @@ export:
     uv export --frozen --no-hashes --output-file=requirements.txt
 
 run:
-    podman build -t netoc:latest .
+    podman build . -t neteoc/web
     podman-compose up
+
+build:
+    podman build . -t neteoc/web
+    podman push neteoc/web:latest

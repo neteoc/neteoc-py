@@ -14,6 +14,14 @@ Each incident should also have a user that is the incident commander. This user 
 
 It is important to keep track of who has checked in and out of an incident. This is for insurance and safety purposes. The system should allow users to check in and out of incidents, and the incident owner should be able to view all check-ins for that incident. The incident owner and incident commander should also be able to delete/update check-ins if necessary.
 
+## Project Infrastructure
+
+The application is packaged as a Docker container and can be run using Podman.
+
+The project uses a `justfile` for task automation, which includes commands for running the application, building the Docker image, and managing dependencies.
+
+The application will be deployed on a kubernetes cluster, and the Docker image will be pushed to a container registry.
+
 ## Incident Creation and Management
 
 An incident should have a primary location, a start date, and an end date. The incident should also have a status (active, standby, closed) and an incident type (hurricane, flood, etc.).

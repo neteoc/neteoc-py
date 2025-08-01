@@ -13,3 +13,31 @@ wheels/
 
 # Virtual environments
 .venv
+
+
+# Security
+.env.*
+secrets.*
+*.pem
+*.crt
+*.key
+*.db
+netoc.log
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Django/media
+media/
+staticfiles/
+logs/
+
+
+# Python tooling caches
+.mypy_cache/
+.pytest_cache/
+.coverage
+.cache
+.tox
+.hypothesis/

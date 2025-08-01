@@ -27,6 +27,7 @@ repos:
     rev: 0.7.21
     hooks:
       - id: uv-export
+        args: [--frozen, --no-hashes, --output-file=requirements.txt]
 
   - repo: https://github.com/djlint/djLint
     rev: v1.36.4
