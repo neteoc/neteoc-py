@@ -8,12 +8,14 @@ set -e
 echo "Running pre-commit hooks..."
 
 # Run pre-commit on staged files only
-pre-commit run || true
+if ! pre-commit run; then
+    echo "Warning: Some pre-commit hooks failed. Review the output above."
+fi
 
 # Check if there are any changes after pre-commit
 if ! git diff --quiet; then
     echo "Pre-commit made changes. Adding them to staging..."
-    git add .
+    git add -u
     echo "Changes staged. You can now commit through VS Code."
 else
     echo "Pre-commit completed with no additional changes."

@@ -16,12 +16,16 @@ COMMIT_MSG="$1"
 echo "Running pre-commit hooks..."
 
 # Run pre-commit on all files
-pre-commit run --all-files || true
+pre-commit run --all-files
+PRECOMMIT_EXIT=$?
+if [ $PRECOMMIT_EXIT -ne 0 ]; then
+    echo "Warning: Some pre-commit hooks failed, but continuing with commit."
+fi
 
 # Check if there are any changes after pre-commit
 if ! git diff --quiet; then
     echo "Pre-commit made changes. Adding them to staging..."
-    git add .
+    git add -u
 fi
 
 # Check if there are any staged changes
