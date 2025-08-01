@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fa fa-user-edit me-2"></i>Manage Role for {{ user_membership.user.get_full_name|default:user_membership.user.username }}
+        </h1>
+        <div class="btn-group">
+            <a href="{% url 'operations:organization_detail' org_id=organization.id %}"
+               class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i>Back to Organization
+            </a>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Update User Role</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Current User:</strong> {{ user_membership.user.get_full_name|default:user_membership.user.username }}
+                        {% if user_membership.user.email %}
+                            <br>
+                            <strong>Email:</strong> {{ user_membership.user.email }}
+                        {% endif %}
+                        <br>
+                        <strong>Organization:</strong> {{ organization.name }}
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'operations:organization_detail' org_id=organization.id %}"
+                               class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save me-1"></i>Update Role
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- Role Descriptions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle me-2"></i>Role Descriptions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="badge bg-danger me-2">Admin</span>
+                            Full access to manage organization, members, and incidents
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-warning text-dark me-2">Incident Manager</span>
+                            Can create and manage incidents, invite users
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-primary me-2">Responder</span>
+                            Can check in/out of incidents and view incident details
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-secondary me-2">Viewer</span>
+                            Read-only access to view incidents and reports
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

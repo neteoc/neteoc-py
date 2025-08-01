@@ -1,7 +1,12 @@
 from django import forms
 from django.forms import ModelForm
 from django.contrib.auth.models import User
-from .models import CheckIn, Incident
+from .models import (
+    CheckIn,
+    Incident,
+    IncidentOrganization,
+    IncidentOrganizationUser,
+)
 from logging import getLogger
 import re
 
@@ -10,6 +15,14 @@ logger = getLogger(__name__)
 
 class IncidentForm(ModelForm):
     """Form for creating and editing incidents"""
+
+    organization = forms.ModelChoiceField(
+        queryset=IncidentOrganization.objects.filter(is_active=True),
+        required=True,
+        empty_label="-- Select organization --",
+        help_text="The organization responsible for this incident",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
 
     incident_commander = forms.ModelChoiceField(
         queryset=User.objects.filter(is_active=True),
@@ -34,6 +47,7 @@ class IncidentForm(ModelForm):
         model = Incident
         fields = [
             "name",
+            "organization",
             "incident_type",
             "description",
             "status",
@@ -212,3 +226,43 @@ class CheckInForm(ModelForm):
             return False
         last_line = lines[-1]
         return last_line.startswith("Z") and len(last_line) >= 3
+
+
+class OrganizationForm(ModelForm):
+    """Form for creating and editing organizations"""
+
+    class Meta:
+        model = IncidentOrganization
+        fields = ["name", "organization_type"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "organization_type": forms.Select(attrs={"class": "form-control"}),
+        }
+
+
+class InviteUserForm(forms.Form):
+    """Form for inviting users to an organization"""
+
+    invitee_identifier = forms.EmailField(
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+        help_text="Email address of the person to invite",
+        label="Email",
+    )
+
+    role = forms.ChoiceField(
+        choices=IncidentOrganizationUser.ROLE_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        help_text="Role to assign to the invited user",
+    )
+
+
+class ManageUserRoleForm(ModelForm):
+    """Form for managing user roles within an organization"""
+
+    class Meta:
+        model = IncidentOrganizationUser
+        fields = ["role", "is_admin"]
+        widgets = {
+            "role": forms.Select(attrs={"class": "form-control"}),
+            "is_admin": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }

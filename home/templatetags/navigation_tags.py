@@ -17,8 +17,8 @@ def get_site_root(context):
 def get_installed_apps(context):
     app_urls = [
         {
-            "name": "CheckIn",
-            "url": "/checkin/",
+            "name": "Operations",
+            "url": "/operations/",
         },
     ]
     return app_urls

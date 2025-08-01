@@ -1,13 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django_tables2 import SingleTableView
 from django.contrib import messages
-from django.db.models import Q
 
 from .lib.aamva import aamva_2020
 import typing
-from .forms import CheckInForm, IncidentForm
-from .models import Incident, CheckIn
+from .forms import CheckInForm, IncidentForm, InviteUserForm, ManageUserRoleForm
+from .models import (
+    Incident,
+    CheckIn,
+    IncidentOrganizationUser,
+    IncidentOrganizationInvitation,
+)
 from .tables import CheckInTable
 
 from logging import getLogger
@@ -16,25 +21,23 @@ logger = getLogger(__name__)
 
 
 def get_accessible_incidents(user):
-    """Get incidents that the user has access to based on ownership and group membership"""
+    """Get incidents that the user has access to based on organization membership"""
     if not user.is_authenticated:
         return Incident.objects.none()
 
-    # Superusers and staff can see all incidents
-    if user.is_superuser or user.is_staff:
+    # Superusers can see all incidents
+    if user.is_superuser:
         return Incident.objects.all()
 
-    # Start with incidents user owns
-    user_filter = Q(owner=user)
+    # Get incidents from organizations the user belongs to
+    user_orgs = IncidentOrganizationUser.objects.filter(user=user).values_list(
+        "organization", flat=True
+    )
+    if user_orgs:
+        return Incident.objects.filter(organization__in=user_orgs)
 
-    # Add incidents user has access to via groups
-    if user.groups.filter(
-        name__in=["Incident Admins", "Incident Responders", "Incident Viewers"]
-    ).exists():
-        # Users in these groups can see all incidents
-        return Incident.objects.all()
-
-    return Incident.objects.filter(user_filter)
+    # If user is not in any organization, only show incidents they own
+    return Incident.objects.filter(owner=user)
 
 
 def decode_aamva_fields(pdf417_data_txt: typing.List[str]) -> dict:
@@ -84,12 +87,15 @@ def dashboard(request):
         }
         incident_stats.append(stats)
 
-    # Check if user can create incidents
-    can_create_incidents = (
-        request.user.is_superuser
-        or request.user.is_staff
-        or request.user.groups.filter(name="Incident Admins").exists()
-    )
+    # Check if user can create incidents (must be in an organization with ADMIN or INCIDENT_MANAGER role)
+    can_create_incidents = False
+    if request.user.is_superuser:
+        can_create_incidents = True
+    else:
+        user_roles = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "role", flat=True
+        )
+        can_create_incidents = any(role in ["ADMIN", "INCIDENT_MANAGER"] for role in user_roles)
 
     context.update(
         {
@@ -280,12 +286,21 @@ def checkout(request, pk):
 @login_required()
 def create_incident(request):
     """Create a new incident"""
-    # Check if user has permission to create incidents
-    if not (
-        request.user.is_superuser
-        or request.user.is_staff
-        or request.user.groups.filter(name="Incident Admins").exists()
-    ):
+    # Check if user has permission to create incidents (ADMIN or INCIDENT_MANAGER role)
+    can_create = False
+    user_org = None
+
+    if request.user.is_superuser:
+        can_create = True
+    else:
+        user_org_memberships = IncidentOrganizationUser.objects.filter(user=request.user)
+        for membership in user_org_memberships:
+            if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+                can_create = True
+                user_org = membership.organization
+                break
+
+    if not can_create:
         messages.error(request, "You don't have permission to create incidents.")
         return redirect("operations:dashboard")
 
@@ -295,12 +310,20 @@ def create_incident(request):
             incident = form.save(commit=False)
             incident.owner = request.user
             incident.created_by = request.user
+
+            # Set organization based on user's primary organization or form selection
+            if not incident.organization and user_org:
+                incident.organization = user_org
+
             incident.save()
 
             messages.success(request, f"Incident '{incident.name}' has been created successfully!")
             return redirect("operations:dashboard")
     else:
         form = IncidentForm()
+        # If user has a default organization, pre-select it
+        if user_org:
+            form.initial["organization"] = user_org
 
     context = {
         "form": form,
@@ -333,3 +356,169 @@ def incident_detail(request, incident_id):
         "can_checkin": incident.has_write_access(request.user),
     }
     return render(request, "operations/incident/detail.html", context)
+
+
+@login_required()
+def organization_list(request):
+    """List organizations user belongs to"""
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).select_related(
+        "organization"
+    )
+
+    context = {
+        "user_organizations": user_orgs,
+        "page_title": "My Organizations",
+    }
+    return render(request, "operations/organization/list.html", context)
+
+
+@login_required()
+def organization_detail(request, org_id):
+    """View organization details and manage members"""
+    # Check if user belongs to this organization
+    try:
+        user_membership = IncidentOrganizationUser.objects.get(
+            user=request.user, organization_id=org_id
+        )
+        organization = user_membership.organization
+    except IncidentOrganizationUser.DoesNotExist:
+        messages.error(request, "You don't have access to this organization.")
+        return redirect("operations:organization_list")
+
+    # Get all members of this organization
+    members = IncidentOrganizationUser.objects.filter(organization=organization).select_related(
+        "user"
+    )
+
+    # Get pending invitations if user is admin
+    pending_invitations = []
+    if user_membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+        pending_invitations = IncidentOrganizationInvitation.objects.filter(
+            organization=organization
+        )
+
+    context = {
+        "organization": organization,
+        "user_membership": user_membership,
+        "members": members,
+        "pending_invitations": pending_invitations,
+        "can_manage": user_membership.role in ["ADMIN", "INCIDENT_MANAGER"],
+        "page_title": f"{organization.name} - Organization Details",
+    }
+    return render(request, "operations/organization/detail.html", context)
+
+
+@login_required()
+def invite_user(request, org_id):
+    """Invite a user to join an organization"""
+    # Check if user has permission to invite
+    try:
+        user_membership = IncidentOrganizationUser.objects.get(
+            user=request.user, organization_id=org_id
+        )
+        if user_membership.role not in ["ADMIN", "INCIDENT_MANAGER"]:
+            messages.error(
+                request, "You don't have permission to invite users to this organization."
+            )
+            return redirect("operations:organization_detail", org_id=org_id)
+        organization = user_membership.organization
+    except IncidentOrganizationUser.DoesNotExist:
+        messages.error(request, "You don't have access to this organization.")
+        return redirect("operations:organization_list")
+
+    if request.method == "POST":
+        form = InviteUserForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["invitee_identifier"]
+            role = form.cleaned_data["role"]
+
+            # Check if user already exists in organization
+            existing_user = User.objects.filter(email=email).first()
+            if existing_user:
+                existing_membership = IncidentOrganizationUser.objects.filter(
+                    user=existing_user, organization=organization
+                ).exists()
+                if existing_membership:
+                    messages.error(
+                        request, f"User {email} is already a member of this organization."
+                    )
+                    return redirect("operations:organization_detail", org_id=org_id)
+
+            # Check if invitation already exists
+            existing_invitation = IncidentOrganizationInvitation.objects.filter(
+                invitee_identifier=email, organization=organization
+            ).exists()
+            if existing_invitation:
+                messages.error(request, f"An invitation has already been sent to {email}.")
+                return redirect("operations:organization_detail", org_id=org_id)
+
+            # Create invitation
+            IncidentOrganizationInvitation.objects.create(
+                invitee_identifier=email,
+                organization=organization,
+                role=role,
+                invited_by=request.user,
+            )
+
+            messages.success(request, f"Invitation sent to {email} successfully!")
+            return redirect("operations:organization_detail", org_id=org_id)
+    else:
+        form = InviteUserForm()
+
+    context = {
+        "form": form,
+        "organization": organization,
+        "page_title": f"Invite User to {organization.name}",
+    }
+    return render(request, "operations/organization/invite.html", context)
+
+
+@login_required()
+def manage_user_role(request, org_id, user_id):
+    """Manage a user's role within an organization"""
+    # Check if current user has permission to manage roles
+    try:
+        current_user_membership = IncidentOrganizationUser.objects.get(
+            user=request.user, organization_id=org_id
+        )
+        if current_user_membership.role != "ADMIN":
+            messages.error(request, "Only organization admins can manage user roles.")
+            return redirect("operations:organization_detail", org_id=org_id)
+        organization = current_user_membership.organization
+    except IncidentOrganizationUser.DoesNotExist:
+        messages.error(request, "You don't have access to this organization.")
+        return redirect("operations:organization_list")
+
+    # Get the user membership to manage
+    try:
+        user_membership = IncidentOrganizationUser.objects.get(
+            organization=organization, user_id=user_id
+        )
+    except IncidentOrganizationUser.DoesNotExist:
+        messages.error(request, "User is not a member of this organization.")
+        return redirect("operations:organization_detail", org_id=org_id)
+
+    # Prevent self-demotion
+    if user_membership.user == request.user:
+        messages.error(request, "You cannot change your own role.")
+        return redirect("operations:organization_detail", org_id=org_id)
+
+    if request.method == "POST":
+        form = ManageUserRoleForm(request.POST, instance=user_membership)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Updated role for {user_membership.user.get_full_name() or user_membership.user.username}",
+            )
+            return redirect("operations:organization_detail", org_id=org_id)
+    else:
+        form = ManageUserRoleForm(instance=user_membership)
+
+    context = {
+        "form": form,
+        "organization": organization,
+        "user_membership": user_membership,
+        "page_title": f"Manage Role for {user_membership.user.get_full_name() or user_membership.user.username}",
+    }
+    return render(request, "operations/organization/manage_role.html", context)

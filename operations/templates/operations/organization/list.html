@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fa fa-building me-2"></i>My Organizations
+        </h1>
+        <div class="btn-group">
+            <a href="{% url 'operations:dashboard' %}"
+               class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+    {% if user_organizations %}
+        <div class="row">
+            {% for membership in user_organizations %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ membership.organization.name }}</h5>
+                            <span class="badge bg-primary">{{ membership.get_role_display }}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fa fa-tag me-1"></i>Type: {{ membership.organization.get_organization_type_display }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fa fa-calendar me-1"></i>Joined: {{ membership.created|date:"M d, Y" }}
+                                </small>
+                                {% if membership.is_admin %}
+                                    <br>
+                                    <small class="text-success">
+                                        <i class="fa fa-shield-alt me-1"></i>Admin privileges
+                                    </small>
+                                {% endif %}
+                            </p>
+                            <div class="btn-group">
+                                <a href="{% url 'operations:organization_detail' org_id=membership.organization.id %}"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fa fa-eye me-1"></i>View Details
+                                </a>
+                                {% if membership.role in "ADMIN,INCIDENT_MANAGER" %}
+                                    <a href="{% url 'operations:invite_user' org_id=membership.organization.id %}"
+                                       class="btn btn-success btn-sm">
+                                        <i class="fa fa-user-plus me-1"></i>Invite Users
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h5>
+                <i class="fa fa-info-circle me-2"></i>No Organizations
+            </h5>
+            <p>
+                You are not currently a member of any organizations. Contact your administrator to be invited to an organization.
+            </p>
+        </div>
+    {% endif %}
+{% endblock content %}

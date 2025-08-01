@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>
+                <i class="fa fa-building me-2"></i>{{ organization.name }}
+            </h1>
+            <p class="text-muted mb-0">
+                {{ organization.get_organization_type_display }} |
+                Your role: <span class="badge bg-primary">{{ user_membership.get_role_display }}</span>
+                {% if user_membership.is_admin %}<span class="badge bg-success ms-1">Admin</span>{% endif %}
+            </p>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'operations:organization_list' %}"
+               class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i>Back to Organizations
+            </a>
+            {% if can_manage %}
+                <a href="{% url 'operations:invite_user' org_id=organization.id %}"
+                   class="btn btn-success">
+                    <i class="fa fa-user-plus me-1"></i>Invite User
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <!-- Members Section -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa fa-users me-2"></i>Members ({{ members.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if members %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Admin</th>
+                                        <th>Joined</th>
+                                        {% if can_manage %}<th>Actions</th>{% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in members %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
+                                                {% if member.user.email %}
+                                                    <br>
+                                                    <small class="text-muted">{{ member.user.email }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if member.role == 'ADMIN' %}danger{% elif member.role == 'INCIDENT_MANAGER' %}warning{% elif member.role == 'RESPONDER' %}primary{% else %}secondary{% endif %}">
+                                                    {{ member.get_role_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if member.is_admin %}
+                                                    <i class="fa fa-check text-success"></i>
+                                                {% else %}
+                                                    <i class="fa fa-times text-muted"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ member.created|date:"M d, Y" }}</td>
+                                            {% if can_manage %}
+                                                <td>
+                                                    {% if member.user != user and user_membership.role == 'ADMIN' %}
+                                                        <a href="{% url 'operations:manage_user_role' org_id=organization.id user_id=member.user.id %}"
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="fa fa-edit"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No members found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Pending Invitations -->
+            {% if pending_invitations %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fa fa-envelope me-2"></i>Pending Invitations
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% for invitation in pending_invitations %}
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>{{ invitation.invitee_identifier }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        Role: {{ invitation.get_role_display }}
+                                        <br>
+                                        Invited: {{ invitation.created|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            <!-- Organization Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-chart-bar me-2"></i>Organization Stats
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-primary">{{ members.count }}</div>
+                            <small class="text-muted">Members</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-success">{{ pending_invitations.count }}</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fa fa-calendar me-1"></i>
+                            Created: {{ organization.created|date:"M d, Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <!-- Quick Actions -->
+            {% if can_manage %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fa fa-bolt me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'operations:invite_user' org_id=organization.id %}"
+                               class="btn btn-success btn-sm">
+                                <i class="fa fa-user-plus me-1"></i>Invite New User
+                            </a>
+                            <a href="{% url 'admin:operations_incidentorganization_change' organization.id %}"
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fa fa-edit me-1"></i>Edit Organization
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %}

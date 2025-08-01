@@ -11,6 +11,12 @@ from .forms import UserProfileForm
 from .models import UserProfile
 from .serializers import UserRosterSerializer
 
+# Import organization models for displaying user memberships
+try:
+    from operations.models import IncidentOrganizationUser
+except ImportError:
+    IncidentOrganizationUser = None
+
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -35,7 +41,21 @@ def profile(request):
     else:
         form = UserProfileForm(instance=user_profile)
 
-    context = {"form": form, "user_profile": user_profile, "created": created}
+    # Get user's organization memberships
+    user_organizations = []
+    if IncidentOrganizationUser:
+        user_organizations = (
+            IncidentOrganizationUser.objects.filter(user=request.user)
+            .select_related("organization")
+            .order_by("organization__name")
+        )
+
+    context = {
+        "form": form,
+        "user_profile": user_profile,
+        "created": created,
+        "user_organizations": user_organizations,
+    }
 
     return render(request, "user_profile/profile.html", context)
 
