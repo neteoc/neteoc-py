@@ -127,6 +127,14 @@
                                                 <br>
                                                 <i class="fa fa-user me-1"></i>Owner: {{ stats.incident.owner.get_full_name|default:stats.incident.owner.username }}
                                             {% endif %}
+                                            {% if stats.incident.organization %}
+                                                <br>
+                                                <i class="fa fa-building me-1"></i>Organization:
+                                                <a href="{% url 'operations:organization_detail' org_id=stats.incident.organization.id %}"
+                                                   class="text-decoration-none">
+                                                    {{ stats.incident.organization.name }}
+                                                </a>
+                                            {% endif %}
                                         </small>
                                     </div>
                                     <div class="col-md-3 text-center">
