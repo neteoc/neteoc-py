@@ -11,6 +11,9 @@ check:
 lint:
     uv run ruff check --fix --exit-zero
     uv run ruff format
+    uv run djlint . --reformat
+    uv run djlint . --lint
+
 
 serve:
     uv run python manage.py makemigrations

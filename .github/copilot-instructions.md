@@ -6,6 +6,10 @@ A user is a person. A person might not be a user. A person may be a responder or
 
 An incident is a specific occurrence of a disaster or community event. Like a hurricane, flood, or community festival.
 
+## Code Style and Standards
+
+Run `pre-commit run --all-files` to check code style and standards.
+
 ## Security
 
 All endpoints other than the wagtail managed public pages should be protected by the `@login_required` decorator.
@@ -32,6 +36,12 @@ https://www.django-rest-framework.org/
 Geographic functions and data should make use of GeoDjango: https://docs.djangoproject.com/en/5.2/ref/contrib/gis/
 
 Code should be checked and formatted with the tool `ruff` after any changes. There is a shortcut command in the justfile that can be used for this: `just lint`.
+
+## UI Components
+
+Use Bootstrap 5 for UI components. https://getbootstrap.com/docs/5.3/getting-started/introduction/
+
+Use Bootstrap Icons library for icons: https://icons.getbootstrap.com/
 
 ## HTML Template instructions
 

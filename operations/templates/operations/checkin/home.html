@@ -2,10 +2,6 @@
 {% load static %}
 {% load django_bootstrap5 %}
 {% block content %}
-    <div class="clearfix mb-4">
-        {% bootstrap_button button_type="link" content="My Profile" button_class="btn-info" extra_classes="float-start" href="/profile/" %}
-        {% bootstrap_button button_type="link" content="Report" button_class="btn-danger" extra_classes="float-end" href="/operations/checkin/report/" %}
-    </div>
     <h2>Check-in Dashboard</h2>
     {% if active_incidents %}
         <div class="row">
@@ -120,7 +116,8 @@
             </p>
             <p class="mb-0">
                 <strong>Administrators:</strong> You can create incidents in the
-                <a href="/admin/operations/incident/" class="alert-link">Django Admin</a>.
+                <a href="{% url 'admin:operations_incident_changelist' %}"
+                   class="alert-link">Django Admin</a>.
             </p>
         </div>
     {% endif %}

@@ -1,24 +1,17 @@
 <footer class="mt-4 py-5 bg-dark">
-  <div class="container">
-    <p class="m-0 text-center text-white">
-      Built by <a href="https://www.kerryhatcher.com">Kerry Hatcher</a>
-    </p>
-
-    {% with linkedin_url=settings.home.NavigationSettings.linkedin_url github_url=settings.home.NavigationSettings.github_url mastodon_url=settings.home.NavigationSettings.mastodon_url %}
-        {% if linkedin_url or github_url or mastodon_url %}
-            <p>
-                Follow me on:
-                {% if github_url %}
-                    <a href="{{ github_url }}">GitHub</a>
-                {% endif %}
-                {% if linkedin_url %}
-                    <a href="{{ linkedin_url }}">LinkedIn</a>
-                {% endif %}
-                {% if mastodon_url %}
-                    <a href="{{ mastodon_url }}">Mastodon</a>
-                {% endif %}
-            </p>
-        {% endif %}
-    {% endwith %}
-  </div>
+    <div class="container">
+        <p class="m-0 text-center text-white">
+            Built by <a href="https://www.kerryhatcher.com">Kerry Hatcher</a>
+        </p>
+        {% with linkedin_url=settings.home.NavigationSettings.linkedin_url github_url=settings.home.NavigationSettings.github_url mastodon_url=settings.home.NavigationSettings.mastodon_url %}
+            {% if linkedin_url or github_url or mastodon_url %}
+                <p>
+                    Follow me on:
+                    {% if github_url %}<a href="{{ github_url }}">GitHub</a>{% endif %}
+                    {% if linkedin_url %}<a href="{{ linkedin_url }}">LinkedIn</a>{% endif %}
+                    {% if mastodon_url %}<a href="{{ mastodon_url }}">Mastodon</a>{% endif %}
+                </p>
+            {% endif %}
+        {% endwith %}
+    </div>
 </footer>
