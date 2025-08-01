@@ -19,6 +19,12 @@ RUN pip install -r requirements.txt
 # Copy the rest of the application code to the container
 COPY . .
 
+# Copy and make the entrypoint script executable
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Specify the command to run your Django app
 CMD ["gunicorn", "neteoc.wsgi:application", "--bind", "0.0.0.0:8000"]

@@ -20,6 +20,10 @@ This directory contains comprehensive documentation for the NetEOC disaster resp
 - [Enhanced Footer Implementation](enhanced-footer-implementation.md) - Context-aware footer with organization and incident information
 - [Demo Data Setup](demo-data-setup.md) - Guide for setting up demonstration data
 
+### Deployment
+
+- [Docker Deployment](docker-deployment.md) - Guide for deploying NetEOC using Docker containers with automatic migrations
+
 ## Getting Started
 
 For getting started with the project, see the main [README.md](../README.md) in the root directory.

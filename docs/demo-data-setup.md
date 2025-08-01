@@ -34,16 +34,16 @@ uv run python manage.py setup_demo_data --clear
 
 All demo users have the password: `demo123`
 
-| Username | Organizations | Role | Description |
-|----------|---------------|------|-------------|
-| john.smith | Demo County EMA | Admin | EMA Administrator |
-| sarah.johnson | Demo County EMA | Incident Manager | EMA Incident Manager |
-| mike.wilson | Demo State Defense Force | Admin | SDF Administrator |
-| lisa.chen | Demo State Defense Force | Incident Manager | SDF Incident Manager |
-| david.brown | Demo City Fire Dept | Admin | Fire Department Admin |
-| jennifer.garcia | Demo City Fire Dept | Responder | Fire Department Responder |
-| robert.martinez | Demo Regional Medical | Admin | Medical Center Admin |
-| maria.rodriguez | EMA + Medical | Responder/Viewer | Cross-organization user |
+| Username        | Organizations            | Role             | Description               |
+| --------------- | ------------------------ | ---------------- | ------------------------- |
+| john.smith      | Demo County EMA          | Admin            | EMA Administrator         |
+| sarah.johnson   | Demo County EMA          | Incident Manager | EMA Incident Manager      |
+| mike.wilson     | Demo State Defense Force | Admin            | SDF Administrator         |
+| lisa.chen       | Demo State Defense Force | Incident Manager | SDF Incident Manager      |
+| david.brown     | Demo City Fire Dept      | Admin            | Fire Department Admin     |
+| jennifer.garcia | Demo City Fire Dept      | Responder        | Fire Department Responder |
+| robert.martinez | Demo Regional Medical    | Admin            | Medical Center Admin      |
+| maria.rodriguez | EMA + Medical            | Responder/Viewer | Cross-organization user   |
 
 ### Superuser Integration
 
