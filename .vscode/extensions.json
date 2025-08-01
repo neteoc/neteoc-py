@@ -4,6 +4,7 @@
     "charliermarsh.ruff",
     "visualstudioexptteam.vscodeintellicode",
     "monosans.djlint",
-    "elagil.pre-commit-helper"
+    "elagil.pre-commit-helper",
+    "sonarsource.sonarlint-vscode"
   ]
 }

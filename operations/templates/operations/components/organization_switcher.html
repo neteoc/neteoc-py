@@ -1,0 +1,58 @@
+{% load django_bootstrap5 %}
+{% if user.is_authenticated and can_switch_organizations %}
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle"
+                type="button"
+                id="orgSwitcher"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Switch Organization">
+            <i class="bi bi-building me-1"></i>
+            {% if current_organization %}
+                {{ current_organization.name }}
+            {% else %}
+                All Organizations
+            {% endif %}
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="orgSwitcher">
+            {% if current_organization %}
+                <li>
+                    <a class="dropdown-item"
+                       href="{% url 'operations:clear_organization' %}"><i class="bi bi-globe me-2"></i>All Organizations</a>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+            {% endif %}
+            {% for org in user_organizations %}
+                <li>
+                    <a class="dropdown-item {% if current_organization and org.id == current_organization.id %}active{% endif %}"
+                       href="{% url 'operations:switch_organization' org_id=org.id %}"><i class="bi bi-building me-2"></i>{{ org.name }}
+                        {% if current_organization and org.id == current_organization.id %}
+                            <i class="bi bi-check-circle ms-1 text-success"></i>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+            {% if not current_organization %}
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <span class="dropdown-item-text text-muted"><i class="bi bi-info-circle me-1"></i>Currently showing data from all organizations</span>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+{% elif user.is_authenticated and user_organizations %}
+    <div class="navbar-text">
+        <i class="bi bi-building me-1"></i>
+        {% if current_organization %}
+            {{ current_organization.name }}
+        {% elif user_organizations|length == 1 %}
+            {{ user_organizations.0.name }}
+        {% else %}
+            Multiple Organizations
+        {% endif %}
+    </div>
+{% endif %}

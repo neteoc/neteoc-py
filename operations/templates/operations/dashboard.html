@@ -3,9 +3,20 @@
 {% load django_bootstrap5 %}
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>
-            <i class="fa fa-tachometer-alt me-2"></i>Operations Dashboard
-        </h1>
+        <div>
+            <h1>
+                <i class="fa fa-tachometer-alt me-2"></i>Operations Dashboard
+            </h1>
+            {% if current_organization %}
+                <div class="text-muted">
+                    <i class="bi bi-building me-1"></i>Viewing data for: <strong>{{ current_organization.name }}</strong>
+                </div>
+            {% elif can_switch_organizations %}
+                <div class="text-muted">
+                    <i class="bi bi-globe me-1"></i>Viewing data from <strong>all organizations</strong>
+                </div>
+            {% endif %}
+        </div>
         <div class="btn-group">
             <a href="{% url 'operations:checkin_index' %}" class="btn btn-primary">
                 <i class="fa fa-clipboard-check me-1"></i>Check-in System
@@ -243,6 +254,10 @@
                         <a href="{% url 'operations:checkin_report' %}"
                            class="btn btn-outline-primary">
                             <i class="fa fa-chart-bar me-1"></i>View All Reports
+                        </a>
+                        <a href="{% url 'operations:support_requests_list' %}"
+                           class="btn btn-outline-warning">
+                            <i class="fa fa-handshake me-1"></i>Support Requests
                         </a>
                         <a href="{% url 'admin:operations_incident_changelist' %}"
                            class="btn btn-outline-info">

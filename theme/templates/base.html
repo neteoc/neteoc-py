@@ -35,12 +35,13 @@
     </head>
     <body class="{% block body_class %}{% endblock body_class %}">
         {% wagtailuserbar %}
-        <div class="vh-100">
+        <div class="vh-100 d-flex flex-column">
             {% include "components/navbar.html" %}
-            <div class="container">
+            <div class="container flex-grow-1">
                 {% block content %}
                 {% endblock content %}
             </div>
+            {% include "components/footer.html" %}
         </div>
         {# Global javascript #}
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.slim.min.js"

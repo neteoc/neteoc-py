@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fa fa-handshake me-2"></i>{{ support_request.title }}
+                        <span class="badge bg-{% if support_request.status == 'PENDING' %}warning{% elif support_request.status == 'APPROVED' %}success{% elif support_request.status == 'DECLINED' %}danger{% else %}secondary{% endif %} ms-2">
+                            {{ support_request.get_status_display }}
+                        </span>
+                    </h4>
+                    <p class="text-muted mb-0">
+                        {{ support_request.requesting_organization.name }} → {{ support_request.target_organization.name }}
+                    </p>
+                </div>
+                <div class="card-body">
+                    <h6>Description</h6>
+                    <p>{{ support_request.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Related Incident</h6>
+                            <p>
+                                <a href="{% url 'operations:incident_detail' incident_id=support_request.related_incident.id %}">
+                                    {{ support_request.related_incident.name }}
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Urgency</h6>
+                            <span class="badge bg-{% if support_request.urgency == 'CRITICAL' %}danger{% elif support_request.urgency == 'HIGH' %}warning{% elif support_request.urgency == 'MEDIUM' %}info{% else %}secondary{% endif %}">
+                                {{ support_request.get_urgency_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>Requested Start</h6>
+                            <p>{{ support_request.requested_start_date|date:"M d, Y" }}</p>
+                        </div>
+                        {% if support_request.requested_end_date %}
+                            <div class="col-md-6">
+                                <h6>Requested End</h6>
+                                <p>{{ support_request.requested_end_date|date:"M d, Y" }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if support_request.response_notes %}
+                        <h6>Response Notes</h6>
+                        <p>{{ support_request.response_notes }}</p>
+                    {% endif %}
+                    {% if support_request.approved_resources %}
+                        <h6>Approved Resources</h6>
+                        <p>{{ support_request.approved_resources }}</p>
+                    {% endif %}
+                    <div class="border-top pt-3 mt-3">
+                        <small class="text-muted">
+                            Requested by: <strong>{{ support_request.requested_by.get_full_name|default:support_request.requested_by.username }}</strong>
+                            <br>
+                            Created: {{ support_request.created_at|date:"M d, Y g:i A" }}
+                            <br>
+                            {% if support_request.reviewed_by %}
+                                Reviewed by: <strong>{{ support_request.reviewed_by.get_full_name|default:support_request.reviewed_by.username }}</strong>
+                                <br>
+                                Reviewed: {{ support_request.reviewed_at|date:"M d, Y g:i A" }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% if can_review and support_request.status == 'PENDING' %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fa fa-clipboard-check me-2"></i>Review Request
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="response_notes" class="form-label">Response Notes</label>
+                                <textarea name="response_notes"
+                                          id="response_notes"
+                                          class="form-control"
+                                          rows="3"
+                                          placeholder="Add notes about your decision..."></textarea>
+                            </div>
+                            <div class="mb-3 d-none" id="approved_resources_div">
+                                <label for="approved_resources" class="form-label">Approved Resources</label>
+                                <textarea name="approved_resources"
+                                          id="approved_resources"
+                                          class="form-control"
+                                          rows="2"
+                                          placeholder="Describe what resources you're providing..."></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                        name="action"
+                                        value="approve"
+                                        class="btn btn-success"
+                                        onclick="showApprovedResources()">
+                                    <i class="fa fa-check me-1"></i>Approve Request
+                                </button>
+                                <button type="submit" name="action" value="decline" class="btn btn-danger">
+                                    <i class="fa fa-times me-1"></i>Decline Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+            {% if can_cancel %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-x-circle me-2"></i>Cancel Request
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            You can cancel this support request if it's no longer needed. The request will be marked as cancelled but retained for record keeping.
+                        </p>
+                        <form method="post"
+                              onsubmit="return confirm('Are you sure you want to cancel this support request? This action cannot be undone.')">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="cancel_reason" class="form-label">Reason for Cancellation (Optional)</label>
+                                <textarea name="cancel_reason"
+                                          id="cancel_reason"
+                                          class="form-control"
+                                          rows="2"
+                                          placeholder="Why is this request being cancelled?"></textarea>
+                            </div>
+                            <button type="submit" name="action" value="cancel" class="btn btn-warning">
+                                <i class="bi bi-x-circle me-1"></i>Cancel Request
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+            {% if can_create_incident %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fa fa-plus me-2"></i>Create Supporting Incident
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p>This request has been approved. You can now create an incident to track your organization's support efforts.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    name="action"
+                                    value="create_incident"
+                                    class="btn btn-primary">
+                                <i class="fa fa-plus me-1"></i>Create Supporting Incident
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-cog me-2"></i>Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'operations:support_requests_list' %}"
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i>Back to Requests
+                        </a>
+                        <a href="{% url 'operations:incident_detail' incident_id=support_request.related_incident.id %}"
+                           class="btn btn-outline-primary">
+                            <i class="fa fa-eye me-1"></i>View Related Incident
+                        </a>
+                        {% if support_request.created_incidents.exists %}
+                            {% for incident in support_request.created_incidents.all %}
+                                <a href="{% url 'operations:incident_detail' incident_id=incident.id %}"
+                                   class="btn btn-outline-success">
+                                    <i class="fa fa-link me-1"></i>View Supporting Incident
+                                </a>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle me-2"></i>Request Details
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        <strong>From:</strong> {{ support_request.requesting_organization.name }}
+                        <br>
+                        <strong>To:</strong> {{ support_request.target_organization.name }}
+                        <br>
+                        <strong>Status:</strong> {{ support_request.get_status_display }}
+                        <br>
+                        <strong>Urgency:</strong> {{ support_request.get_urgency_display }}
+                        <br>
+                        <strong>Created:</strong> {{ support_request.created_at|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+function showApprovedResources() {
+    document.getElementById('approved_resources_div').classList.remove('d-none');
+}
+    </script>
+{% endblock content %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fa fa-handshake me-2"></i>{{ page_title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{% url 'operations:organization_public_profile' org_id=target_organization.id %}"
+                               class="btn btn-secondary">
+                                <i class="fa fa-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-paper-plane me-1"></i>Send Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="alert alert-info mt-3">
+                <i class="fa fa-info-circle me-2"></i>
+                <strong>How it works:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Your support request will be sent to {{ target_organization.name }}</li>
+                    <li>They will review your request and can approve or decline it</li>
+                    <li>If approved, they can create their own incident to support yours</li>
+                    <li>Both incidents will be linked for coordination purposes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

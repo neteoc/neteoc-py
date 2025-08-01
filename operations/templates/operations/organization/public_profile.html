@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fa fa-building me-2"></i>{{ organization.name }}
+                    </h4>
+                    <p class="text-muted mb-0">{{ organization.get_organization_type_display }}</p>
+                </div>
+                <div class="card-body">
+                    {% if organization.website %}
+                        <p>
+                            <strong>Website:</strong> <a href="{{ organization.website }}" target="_blank">{{ organization.website }}</a>
+                        </p>
+                    {% endif %}
+                    {% if organization.contact_email %}
+                        <p>
+                            <strong>Contact Email:</strong> <a href="mailto:{{ organization.contact_email }}">{{ organization.contact_email }}</a>
+                        </p>
+                    {% endif %}
+                    {% if organization.contact_phone %}
+                        <p>
+                            <strong>Contact Phone:</strong> <a href="tel:{{ organization.contact_phone }}">{{ organization.contact_phone }}</a>
+                        </p>
+                    {% endif %}
+                    {% if organization.address %}
+                        <p>
+                            <strong>Address:</strong> {{ organization.address }}
+                        </p>
+                    {% endif %}
+                    {% if organization.is_verified %}
+                        <span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Verified Organization</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if recent_incidents %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fa fa-list me-2"></i>Recent Active Incidents
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for incident in recent_incidents %}
+                            <div class="border-bottom pb-2 mb-2">
+                                <h6>{{ incident.name }}</h6>
+                                <small class="text-muted">
+                                    <i class="fa fa-calendar me-1"></i>{{ incident.start_date|date:"M d, Y" }}
+                                    {% if incident.location %}
+                                        <br>
+                                        <i class="fa fa-map-marker-alt me-1"></i>{{ incident.location }}
+                                    {% endif %}
+                                    <br>
+                                    <span class="badge bg-primary">{{ incident.get_incident_type_display }}</span>
+                                    <span class="badge bg-success">{{ incident.status|title }}</span>
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            {% if can_request_support %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fa fa-handshake me-2"></i>Request Support
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Need assistance from {{ organization.name }}? You can request support for your active incidents.
+                        </p>
+                        <a href="{% url 'operations:request_support' org_id=organization.id %}"
+                           class="btn btn-primary">
+                            <i class="fa fa-plus me-1"></i>Request Support
+                        </a>
+                    </div>
+                </div>
+            {% elif not user.is_authenticated %}
+                <div class="card">
+                    <div class="card-body">
+                        <p class="text-muted">Please log in to request support from this organization.</p>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                            <i class="fa fa-sign-in-alt me-1"></i>Log In
+                        </a>
+                    </div>
+                </div>
+            {% elif not user_orgs %}
+                <div class="card">
+                    <div class="card-body">
+                        <p class="text-muted">You must be a member of an organization to request support.</p>
+                        <a href="{% url 'operations:organization_list' %}"
+                           class="btn btn-outline-primary">
+                            <i class="fa fa-building me-1"></i>View Organizations
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body">
+                        <p class="text-muted">You cannot request support from your own organization.</p>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle me-2"></i>About Support Requests
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        Support requests allow organizations to coordinate response efforts during incidents.
+                        When you request support, the target organization will be notified and can choose to
+                        approve your request and create their own supporting incident.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

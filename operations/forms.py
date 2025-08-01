@@ -6,6 +6,7 @@ from .models import (
     Incident,
     IncidentOrganization,
     IncidentOrganizationUser,
+    SupportRequest,
 )
 from logging import getLogger
 import re
@@ -266,3 +267,81 @@ class ManageUserRoleForm(ModelForm):
             "role": forms.Select(attrs={"class": "form-control"}),
             "is_admin": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+
+class SupportRequestForm(ModelForm):
+    """Form for creating support requests between organizations"""
+
+    target_organization = forms.ModelChoiceField(
+        queryset=IncidentOrganization.objects.all(),
+        required=True,
+        empty_label="-- Select organization to request support from --",
+        help_text="The organization you want to request support from (cannot be the same as requesting organization)",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    related_incident = forms.ModelChoiceField(
+        queryset=Incident.objects.none(),  # Will be populated in __init__
+        required=True,
+        empty_label="-- Select incident that needs support --",
+        help_text="The incident that requires support",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    requested_start_date = forms.DateField(
+        required=True,
+        help_text="When the support is needed to start",
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+
+    requested_end_date = forms.DateField(
+        required=True,
+        help_text="When the support is needed to end",
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+
+    class Meta:
+        model = SupportRequest
+        fields = [
+            "title",
+            "description",
+            "urgency",
+            "target_organization",
+            "related_incident",
+            "requested_start_date",
+            "requested_end_date",
+        ]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "urgency": forms.Select(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        requesting_organization = kwargs.pop("requesting_organization", None)
+        current_incident = kwargs.pop("current_incident", None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # Populate incidents from user's organizations
+            user_orgs = IncidentOrganizationUser.objects.filter(user=user).values_list(
+                "organization", flat=True
+            )
+            self.fields["related_incident"].queryset = Incident.objects.filter(
+                organization__in=user_orgs, status="ACTIVE"
+            )
+
+            # Set the current incident as the default if provided
+            if current_incident and current_incident.id in self.fields[
+                "related_incident"
+            ].queryset.values_list("id", flat=True):
+                self.fields["related_incident"].initial = current_incident.id
+
+            # Exclude the requesting organization from target options
+            # An organization cannot request support from itself
+            target_queryset = IncidentOrganization.objects.all()
+            if requesting_organization:
+                target_queryset = target_queryset.exclude(id=requesting_organization.id)
+
+            self.fields["target_organization"].queryset = target_queryset

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fa fa-handshake me-2"></i>Support Requests
+        </h2>
+        <a href="{% url 'operations:dashboard' %}"
+           class="btn btn-outline-secondary">
+            <i class="fa fa-tachometer-alt me-1"></i>Back to Dashboard
+        </a>
+    </div>
+    <!-- Organization Context Message -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fa fa-info-circle me-2"></i>{{ context_message }}
+                {% if can_switch_organizations %}
+                    <br>
+                    <small class="text-muted">Use the organization switcher in the header to change your view.</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa fa-inbox me-2"></i>Incoming Requests
+                        <span class="badge bg-primary ms-2">{{ incoming_requests|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if incoming_requests %}
+                        {% for request in incoming_requests %}
+                            <div class="border rounded p-3 mb-3 {% if request.status == 'PENDING' %}border-warning{% elif request.status == 'APPROVED' %}border-success{% elif request.status == 'DECLINED' %}border-danger{% else %}border-secondary{% endif %}">
+                                <h6>{{ request.title }}</h6>
+                                <p class="text-muted small mb-2">{{ request.description|truncatewords:20 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">
+                                            From: <strong>{{ request.requesting_organization.name }}</strong>
+                                            <br>
+                                            Incident: <strong>{{ request.related_incident.name }}</strong>
+                                            <br>
+                                            Urgency: <span class="badge bg-{% if request.urgency == 'CRITICAL' %}danger{% elif request.urgency == 'HIGH' %}warning{% elif request.urgency == 'MEDIUM' %}info{% else %}secondary{% endif %}">{{ request.get_urgency_display }}</span>
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if request.status == 'PENDING' %}warning{% elif request.status == 'APPROVED' %}success{% elif request.status == 'DECLINED' %}danger{% else %}secondary{% endif %} mb-1">
+                                            {{ request.get_status_display }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">{{ request.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{% url 'operations:support_request_detail' request_id=request.id %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-eye me-1"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No incoming support requests.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa fa-paper-plane me-2"></i>Outgoing Requests
+                        <span class="badge bg-primary ms-2">{{ outgoing_requests|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if outgoing_requests %}
+                        {% for request in outgoing_requests %}
+                            <div class="border rounded p-3 mb-3 {% if request.status == 'PENDING' %}border-warning{% elif request.status == 'APPROVED' %}border-success{% elif request.status == 'DECLINED' %}border-danger{% else %}border-secondary{% endif %}">
+                                <h6>{{ request.title }}</h6>
+                                <p class="text-muted small mb-2">{{ request.description|truncatewords:20 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">
+                                            To: <strong>{{ request.target_organization.name }}</strong>
+                                            <br>
+                                            Incident: <strong>{{ request.related_incident.name }}</strong>
+                                            <br>
+                                            Urgency: <span class="badge bg-{% if request.urgency == 'CRITICAL' %}danger{% elif request.urgency == 'HIGH' %}warning{% elif request.urgency == 'MEDIUM' %}info{% else %}secondary{% endif %}">{{ request.get_urgency_display }}</span>
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if request.status == 'PENDING' %}warning{% elif request.status == 'APPROVED' %}success{% elif request.status == 'DECLINED' %}danger{% else %}secondary{% endif %} mb-1">
+                                            {{ request.get_status_display }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">{{ request.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{% url 'operations:support_request_detail' request_id=request.id %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-eye me-1"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No outgoing support requests.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-info mt-4">
+        <i class="fa fa-info-circle me-2"></i>
+        <strong>About Support Requests:</strong> Support requests enable organizations to coordinate during incidents.
+        You can request help from other organizations or respond to requests for your assistance.
+        Approved requests can lead to linked incidents for better coordination.
+    </div>
+{% endblock content %}

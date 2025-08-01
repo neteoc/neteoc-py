@@ -1,17 +1,75 @@
-<footer class="mt-4 py-5 bg-dark">
+<footer class="mt-auto py-3 bg-dark text-light">
     <div class="container">
-        <p class="m-0 text-center text-white">
-            Built by <a href="https://www.kerryhatcher.com">Kerry Hatcher</a>
-        </p>
-        {% with linkedin_url=settings.home.NavigationSettings.linkedin_url github_url=settings.home.NavigationSettings.github_url mastodon_url=settings.home.NavigationSettings.mastodon_url %}
-            {% if linkedin_url or github_url or mastodon_url %}
-                <p>
-                    Follow me on:
-                    {% if github_url %}<a href="{{ github_url }}">GitHub</a>{% endif %}
-                    {% if linkedin_url %}<a href="{{ linkedin_url }}">LinkedIn</a>{% endif %}
-                    {% if mastodon_url %}<a href="{{ mastodon_url }}">Mastodon</a>{% endif %}
+        <!-- Context Information Row -->
+        {% if user.is_authenticated %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <!-- Organization Context -->
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-building me-2"></i>
+                        <strong>Organization:</strong>
+                        <span class="ms-2">
+                            {% if current_organization %}
+                                {{ current_organization.name }}
+                                {% if current_organization.organization_type %}
+                                    <small class="text-muted">({{ current_organization.get_organization_type_display }})</small>
+                                {% endif %}
+                            {% elif user_organizations %}
+                                All Organizations
+                                <small class="text-muted">({{ user_organizations|length }} total)</small>
+                            {% else %}
+                                <span class="text-muted">No organizations</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <!-- Incident Context -->
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Active Incidents:</strong>
+                        <span class="ms-2">
+                            {% if total_active_incidents > 0 %}
+                                {{ total_active_incidents }} active
+                                {% if current_incident %}
+                                    <small class="text-muted">| Current: {{ current_incident.name }}</small>
+                                {% elif active_incidents %}
+                                    <small class="text-muted">| Recent:
+                                        {% for incident in active_incidents|slice:":2" %}
+                                            {{ incident.name }}
+                                            {% if not forloop.last %},{% endif %}
+                                        {% endfor %}
+                                        {% if total_active_incidents > 2 %}...{% endif %}
+                                    </small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">No active incidents</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-secondary">
+        {% endif %}
+        <!-- Attribution Row -->
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-0">
+                    Built by <a href="https://www.kerryhatcher.com" class="text-info">Kerry Hatcher</a>
                 </p>
-            {% endif %}
-        {% endwith %}
+            </div>
+            <div class="col-md-6 text-md-end">
+                {% with linkedin_url=settings.home.NavigationSettings.linkedin_url github_url=settings.home.NavigationSettings.github_url mastodon_url=settings.home.NavigationSettings.mastodon_url %}
+                    {% if linkedin_url or github_url or mastodon_url %}
+                        <p class="mb-0">
+                            Follow me on:
+                            {% if github_url %}<a href="{{ github_url }}" class="text-info me-2">GitHub</a>{% endif %}
+                            {% if linkedin_url %}<a href="{{ linkedin_url }}" class="text-info me-2">LinkedIn</a>{% endif %}
+                            {% if mastodon_url %}<a href="{{ mastodon_url }}" class="text-info">Mastodon</a>{% endif %}
+                        </p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
     </div>
 </footer>

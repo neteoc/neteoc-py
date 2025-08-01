@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db import models
 from .models import (
     Incident,
     CheckIn,
@@ -7,6 +8,8 @@ from .models import (
     IncidentOrganizationUser,
     IncidentOrganizationOwner,
     IncidentOrganizationInvitation,
+    SupportRequest,
+    IncidentLink,
 )
 
 
@@ -320,3 +323,139 @@ class IncidentOrganizationInvitationAdmin(admin.ModelAdmin):
             "organization", flat=True
         )
         return qs.filter(organization__in=user_orgs)
+
+
+@admin.register(SupportRequest)
+class SupportRequestAdmin(admin.ModelAdmin):
+    list_display = [
+        "title",
+        "requesting_organization",
+        "target_organization",
+        "status",
+        "urgency",
+        "requested_by",
+        "reviewed_by",
+        "created_at",
+    ]
+    list_filter = [
+        "status",
+        "urgency",
+        "requesting_organization",
+        "target_organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "description",
+        "requesting_organization__name",
+        "target_organization__name",
+        "requested_by__username",
+    ]
+    readonly_fields = ["created_at", "updated_at", "reviewed_at"]
+
+    fieldsets = (
+        ("Request Details", {"fields": ("title", "description", "urgency")}),
+        ("Organizations", {"fields": ("requesting_organization", "target_organization")}),
+        ("Related Incident", {"fields": ("related_incident",)}),
+        ("Timing", {"fields": ("requested_start_date", "requested_end_date")}),
+        ("Management", {"fields": ("requested_by", "reviewed_by", "status")}),
+        ("Response", {"fields": ("response_notes", "approved_resources")}),
+        (
+            "System Info",
+            {"fields": ("created_at", "updated_at", "reviewed_at"), "classes": ("collapse",)},
+        ),
+    )
+
+    def get_queryset(self, request):
+        """Filter support requests based on user's organization access"""
+        qs = (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "requesting_organization", "target_organization", "related_incident", "requested_by"
+            )
+        )
+
+        # Superusers can see all support requests
+        if request.user.is_superuser:
+            return qs
+
+        # Users can see requests involving their organizations
+        user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        return qs.filter(
+            models.Q(requesting_organization__in=user_orgs)
+            | models.Q(target_organization__in=user_orgs)
+        )
+
+    def save_model(self, request, obj, form, change):
+        """Auto-set requested_by when creating new support request"""
+        if not change:  # Only for new objects
+            obj.requested_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(IncidentLink)
+class IncidentLinkAdmin(admin.ModelAdmin):
+    list_display = [
+        "from_incident",
+        "relationship_type",
+        "to_incident",
+        "created_by",
+        "created_at",
+    ]
+    list_filter = [
+        "relationship_type",
+        "from_incident__organization",
+        "to_incident__organization",
+        "created_at",
+    ]
+    search_fields = [
+        "from_incident__name",
+        "to_incident__name",
+        "notes",
+        "created_by__username",
+    ]
+    readonly_fields = ["created_at"]
+
+    fieldsets = (
+        (
+            "Incident Relationship",
+            {"fields": ("from_incident", "relationship_type", "to_incident")},
+        ),
+        ("Details", {"fields": ("notes", "created_by")}),
+        ("System Info", {"fields": ("created_at",), "classes": ("collapse",)}),
+    )
+
+    def get_queryset(self, request):
+        """Filter incident links based on user's organization access"""
+        qs = (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "from_incident",
+                "to_incident",
+                "from_incident__organization",
+                "to_incident__organization",
+            )
+        )
+
+        # Superusers can see all incident links
+        if request.user.is_superuser:
+            return qs
+
+        # Users can see links involving incidents from their organizations
+        user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        return qs.filter(
+            models.Q(from_incident__organization__in=user_orgs)
+            | models.Q(to_incident__organization__in=user_orgs)
+        )
+
+    def save_model(self, request, obj, form, change):
+        """Auto-set created_by when creating new incident link"""
+        if not change:  # Only for new objects
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

@@ -3,15 +3,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django_tables2 import SingleTableView
 from django.contrib import messages
+from django.utils import timezone
 
 from .lib.aamva import aamva_2020
 import typing
-from .forms import CheckInForm, IncidentForm, InviteUserForm, ManageUserRoleForm
+from .forms import CheckInForm, IncidentForm, InviteUserForm, ManageUserRoleForm, SupportRequestForm
 from .models import (
     Incident,
     CheckIn,
+    IncidentOrganization,
     IncidentOrganizationUser,
     IncidentOrganizationInvitation,
+    SupportRequest,
+    IncidentLink,
 )
 from .tables import CheckInTable
 
@@ -20,21 +24,33 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-def get_accessible_incidents(user):
+def get_accessible_incidents(user, current_organization=None):
     """Get incidents that the user has access to based on organization membership"""
     if not user.is_authenticated:
         return Incident.objects.none()
 
     # Superusers can see all incidents
     if user.is_superuser:
+        if current_organization:
+            return Incident.objects.filter(organization=current_organization)
         return Incident.objects.all()
 
     # Get incidents from organizations the user belongs to
     user_orgs = IncidentOrganizationUser.objects.filter(user=user).values_list(
         "organization", flat=True
     )
+
     if user_orgs:
-        return Incident.objects.filter(organization__in=user_orgs)
+        if current_organization:
+            # Filter to only the current organization if user has access to it
+            if current_organization.id in user_orgs:
+                return Incident.objects.filter(organization=current_organization)
+            else:
+                # User doesn't have access to requested organization
+                return Incident.objects.none()
+        else:
+            # Show incidents from all user's organizations
+            return Incident.objects.filter(organization__in=user_orgs)
 
     # If user is not in any organization, only show incidents they own
     return Incident.objects.filter(owner=user)
@@ -61,20 +77,52 @@ def dashboard(request):
     """Main operations dashboard providing an overview of all operations activities"""
     context = {}
 
-    # Get incidents user has access to
-    all_incidents = get_accessible_incidents(request.user).order_by("-start_date")
+    # Get current organization from context processor (will be in template context)
+    current_org_id = request.session.get("current_organization_id")
+    current_organization = None
+    if current_org_id:
+        try:
+            current_organization = IncidentOrganization.objects.get(id=current_org_id)
+        except IncidentOrganization.DoesNotExist:
+            request.session.pop("current_organization_id", None)
+
+    # Get incidents user has access to, filtered by current organization if set
+    all_incidents = get_accessible_incidents(request.user, current_organization).order_by(
+        "-start_date"
+    )
     active_incidents = all_incidents.filter(status="ACTIVE")
 
     # Overall statistics
     total_incidents = all_incidents.count()
     active_incidents_count = active_incidents.count()
-    total_checkins_all_time = CheckIn.objects.count()
-    current_active_checkins = CheckIn.objects.filter(
-        Check_Out=False, incident__status="ACTIVE"
-    ).count()
 
-    # Recent activity across all incidents
-    recent_checkins = CheckIn.objects.select_related("incident", "user").order_by("-timestamp")[:10]
+    # Filter check-ins by current organization if set
+    if current_organization:
+        total_checkins_all_time = CheckIn.objects.filter(
+            incident__organization=current_organization
+        ).count()
+        current_active_checkins = CheckIn.objects.filter(
+            Check_Out=False, incident__status="ACTIVE", incident__organization=current_organization
+        ).count()
+        recent_checkins = (
+            CheckIn.objects.select_related("incident", "user")
+            .filter(incident__organization=current_organization)
+            .order_by("-timestamp")[:10]
+        )
+    else:
+        # Show data from all accessible incidents
+        accessible_incident_ids = all_incidents.values_list("id", flat=True)
+        total_checkins_all_time = CheckIn.objects.filter(
+            incident__id__in=accessible_incident_ids
+        ).count()
+        current_active_checkins = CheckIn.objects.filter(
+            Check_Out=False, incident__status="ACTIVE", incident__id__in=accessible_incident_ids
+        ).count()
+        recent_checkins = (
+            CheckIn.objects.select_related("incident", "user")
+            .filter(incident__id__in=accessible_incident_ids)
+            .order_by("-timestamp")[:10]
+        )
 
     # Incident statistics
     incident_stats = []
@@ -92,10 +140,21 @@ def dashboard(request):
     if request.user.is_superuser:
         can_create_incidents = True
     else:
-        user_roles = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
-            "role", flat=True
-        )
-        can_create_incidents = any(role in ["ADMIN", "INCIDENT_MANAGER"] for role in user_roles)
+        if current_organization:
+            # Check role in current organization
+            try:
+                user_role = IncidentOrganizationUser.objects.get(
+                    user=request.user, organization=current_organization
+                ).role
+                can_create_incidents = user_role in ["ADMIN", "INCIDENT_MANAGER"]
+            except IncidentOrganizationUser.DoesNotExist:
+                can_create_incidents = False
+        else:
+            # Check if user has the required role in any organization
+            user_roles = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+                "role", flat=True
+            )
+            can_create_incidents = any(role in ["ADMIN", "INCIDENT_MANAGER"] for role in user_roles)
 
     context.update(
         {
@@ -286,19 +345,44 @@ def checkout(request, pk):
 @login_required()
 def create_incident(request):
     """Create a new incident"""
+    # Get current organization from session
+    current_org_id = request.session.get("current_organization_id")
+    current_organization = None
+    if current_org_id:
+        try:
+            current_organization = IncidentOrganization.objects.get(id=current_org_id)
+        except IncidentOrganization.DoesNotExist:
+            request.session.pop("current_organization_id", None)
+
     # Check if user has permission to create incidents (ADMIN or INCIDENT_MANAGER role)
     can_create = False
-    user_org = None
+    default_org = None
 
     if request.user.is_superuser:
         can_create = True
+        default_org = current_organization
     else:
-        user_org_memberships = IncidentOrganizationUser.objects.filter(user=request.user)
-        for membership in user_org_memberships:
-            if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
-                can_create = True
-                user_org = membership.organization
-                break
+        if current_organization:
+            # Check permission in current organization
+            try:
+                membership = IncidentOrganizationUser.objects.get(
+                    user=request.user, organization=current_organization
+                )
+                if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+                    can_create = True
+                    default_org = current_organization
+            except IncidentOrganizationUser.DoesNotExist:
+                pass
+
+        if not can_create:
+            # Check if user has permission in any organization
+            user_org_memberships = IncidentOrganizationUser.objects.filter(user=request.user)
+            for membership in user_org_memberships:
+                if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+                    can_create = True
+                    if not default_org:
+                        default_org = membership.organization
+                    break
 
     if not can_create:
         messages.error(request, "You don't have permission to create incidents.")
@@ -311,9 +395,9 @@ def create_incident(request):
             incident.owner = request.user
             incident.created_by = request.user
 
-            # Set organization based on user's primary organization or form selection
-            if not incident.organization and user_org:
-                incident.organization = user_org
+            # Set organization based on current context or form selection
+            if not incident.organization and default_org:
+                incident.organization = default_org
 
             incident.save()
 
@@ -321,9 +405,9 @@ def create_incident(request):
             return redirect("operations:dashboard")
     else:
         form = IncidentForm()
-        # If user has a default organization, pre-select it
-        if user_org:
-            form.initial["organization"] = user_org
+        # If there's a default organization, pre-select it
+        if default_org:
+            form.initial["organization"] = default_org
 
     context = {
         "form": form,
@@ -522,3 +606,348 @@ def manage_user_role(request, org_id, user_id):
         "page_title": f"Manage Role for {user_membership.user.get_full_name() or user_membership.user.username}",
     }
     return render(request, "operations/organization/manage_role.html", context)
+
+
+@login_required
+def organization_public_profile(request, org_id):
+    """Public profile view for an organization - for requesting support"""
+    organization = get_object_or_404(IncidentOrganization, id=org_id)
+
+    # Get recent incidents for this organization
+    recent_incidents = Incident.objects.filter(organization=organization, status="ACTIVE").order_by(
+        "-start_date"
+    )[:5]
+
+    # Check if user can request support (must be from different organization)
+    can_request_support = False
+    user_orgs = []
+    if request.user.is_authenticated:
+        user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        can_request_support = organization.id not in user_orgs and user_orgs.exists()
+
+    context = {
+        "organization": organization,
+        "recent_incidents": recent_incidents,
+        "can_request_support": can_request_support,
+        "user_orgs": user_orgs,
+    }
+    return render(request, "operations/organization/public_profile.html", context)
+
+
+@login_required
+def request_support(request, org_id):
+    """Create a support request to an organization"""
+    target_organization = get_object_or_404(IncidentOrganization, id=org_id)
+
+    # Check user has organization membership
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+        "organization", flat=True
+    )
+    if not user_orgs.exists():
+        messages.error(request, "You must be a member of an organization to request support.")
+        return redirect("operations:organization_public_profile", org_id=org_id)
+
+    # Prevent requesting support from own organization
+    if target_organization.id in user_orgs:
+        messages.error(request, "You cannot request support from your own organization.")
+        return redirect("operations:organization_public_profile", org_id=org_id)
+
+    if request.method == "POST":
+        form = SupportRequestForm(request.POST, user=request.user)
+        if form.is_valid():
+            support_request = form.save(commit=False)
+            support_request.requesting_organization_id = user_orgs.first()  # Use first org
+            support_request.target_organization = target_organization
+            support_request.requested_by = request.user
+            support_request.save()
+
+            messages.success(
+                request,
+                f"Support request sent to {target_organization.name}. "
+                f"You will be notified when they respond.",
+            )
+            return redirect("operations:organization_public_profile", org_id=org_id)
+    else:
+        form = SupportRequestForm(user=request.user)
+
+    context = {
+        "form": form,
+        "target_organization": target_organization,
+        "page_title": f"Request Support from {target_organization.name}",
+    }
+    return render(request, "operations/support/request_form.html", context)
+
+
+@login_required
+def request_support_for_incident(request, incident_id):
+    """Create a support request for a specific incident"""
+    incident = get_object_or_404(Incident, id=incident_id)
+
+    # Check if user has access to this incident
+    if not incident.has_read_access(request.user):
+        messages.error(request, "You don't have permission to view this incident.")
+        return redirect("operations:dashboard")
+
+    # Check user has organization membership
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+        "organization", flat=True
+    )
+    if not user_orgs.exists():
+        messages.error(request, "You must be a member of an organization to request support.")
+        return redirect("operations:incident_detail", incident_id=incident_id)
+
+    # Determine the requesting organization (current organization context or first org)
+    current_org_id = request.session.get("current_organization_id")
+    if current_org_id and current_org_id in user_orgs:
+        requesting_organization = IncidentOrganization.objects.get(id=current_org_id)
+    else:
+        requesting_organization = IncidentOrganization.objects.get(id=user_orgs.first())
+
+    # Get all organizations available for support requests
+    # Exclude the requesting organization as an org cannot request support from itself
+    available_orgs = IncidentOrganization.objects.exclude(id=requesting_organization.id)
+
+    if request.method == "POST":
+        form = SupportRequestForm(
+            request.POST,
+            user=request.user,
+            requesting_organization=requesting_organization,
+            current_incident=incident,
+        )
+        if form.is_valid():
+            support_request = form.save(commit=False)
+
+            # Set the requesting organization
+            support_request.requesting_organization = requesting_organization
+
+            support_request.related_incident = incident
+            support_request.requested_by = request.user
+            support_request.save()
+
+            messages.success(
+                request,
+                f"Support request sent to {support_request.target_organization.name} for incident '{incident.name}'. "
+                f"You will be notified when they respond.",
+            )
+            return redirect("operations:incident_detail", incident_id=incident_id)
+    else:
+        # Pre-populate the form with incident information
+        initial_data = {
+            "title": f"Support Request for {incident.name}",
+            "description": f"We need support for the {incident.get_incident_type_display().lower()} incident: {incident.name}",
+            "related_incident": incident.id,
+        }
+        form = SupportRequestForm(
+            user=request.user,
+            requesting_organization=requesting_organization,
+            current_incident=incident,
+            initial=initial_data,
+        )
+
+    context = {
+        "form": form,
+        "incident": incident,
+        "available_organizations": available_orgs,
+        "page_title": f"Request Support for {incident.name}",
+    }
+    return render(request, "operations/support/request_form_incident.html", context)
+
+
+@login_required
+def support_requests_list(request):
+    """List support requests for user's organizations"""
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+        "organization", flat=True
+    )
+
+    if not user_orgs.exists():
+        messages.warning(
+            request, "You must be a member of an organization to view support requests."
+        )
+        return redirect("operations:dashboard")
+
+    # Check if user has a current organization context
+    current_org_id = request.session.get("current_organization_id")
+
+    # If user has a current organization context and it's valid, filter by that organization
+    if current_org_id and current_org_id in user_orgs:
+        filter_orgs = [current_org_id]
+        current_org = IncidentOrganization.objects.get(id=current_org_id)
+        context_message = f"Showing support requests for {current_org.name}"
+    else:
+        # No specific organization context, show all user's organizations
+        filter_orgs = user_orgs
+        context_message = "Showing support requests for all your organizations"
+
+    # Get incoming and outgoing support requests (exclude cancelled for normal view)
+    incoming_requests = (
+        SupportRequest.objects.filter(target_organization__in=filter_orgs)
+        .exclude(status="CANCELLED")
+        .select_related("requesting_organization", "related_incident")
+        .order_by("-created_at")
+    )
+
+    outgoing_requests = (
+        SupportRequest.objects.filter(requesting_organization__in=filter_orgs)
+        .exclude(status="CANCELLED")
+        .select_related("target_organization", "related_incident")
+        .order_by("-created_at")
+    )
+
+    context = {
+        "incoming_requests": incoming_requests,
+        "outgoing_requests": outgoing_requests,
+        "context_message": context_message,
+    }
+    return render(request, "operations/support/requests_list.html", context)
+
+
+@login_required
+def support_request_detail(request, request_id):
+    """View and manage a specific support request"""
+    support_request = get_object_or_404(SupportRequest, id=request_id)
+
+    # Check access permissions
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+        "organization", flat=True
+    )
+
+    has_access = (
+        support_request.requesting_organization_id in user_orgs
+        or support_request.target_organization_id in user_orgs
+    )
+
+    if not has_access:
+        messages.error(request, "You don't have access to this support request.")
+        return redirect("operations:support_requests_list")
+
+    # Check if user can review (target organization member)
+    can_review = support_request.target_organization_id in user_orgs
+    can_create_incident = can_review and support_request.can_create_incident
+
+    # Check if user can cancel (requesting organization member and request is pending)
+    can_cancel = (
+        support_request.requesting_organization_id in user_orgs
+        and support_request.status == "PENDING"
+    )
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # Handle cancel action (requesting organization members only)
+        if action == "cancel" and can_cancel:
+            support_request.status = "CANCELLED"
+            support_request.reviewed_by = request.user
+            support_request.reviewed_at = timezone.now()
+            support_request.response_notes = request.POST.get(
+                "cancel_reason", "Request cancelled by requesting organization"
+            )
+            support_request.save()
+            messages.info(request, "Support request has been cancelled.")
+            return redirect("operations:support_request_detail", request_id=support_request.id)
+
+        # Handle review actions (target organization members only)
+        elif can_review:
+            if action == "approve":
+                support_request.status = "APPROVED"
+                support_request.reviewed_by = request.user
+                support_request.reviewed_at = timezone.now()
+                support_request.response_notes = request.POST.get("response_notes", "")
+                support_request.approved_resources = request.POST.get("approved_resources", "")
+                support_request.save()
+                messages.success(request, "Support request approved.")
+
+            elif action == "decline":
+                support_request.status = "DECLINED"
+                support_request.reviewed_by = request.user
+                support_request.reviewed_at = timezone.now()
+                support_request.response_notes = request.POST.get("response_notes", "")
+                support_request.save()
+                messages.info(request, "Support request declined.")
+
+            elif action == "create_incident" and can_create_incident:
+                # Create a new incident based on this support request
+                new_incident = Incident.objects.create(
+                    name=f"Support for {support_request.related_incident.name}",
+                    incident_type=support_request.related_incident.incident_type,
+                    description=f"Supporting {support_request.requesting_organization.name} for {support_request.related_incident.name}",
+                    organization=support_request.target_organization,
+                    owner=request.user,
+                    incident_commander=request.user,
+                    start_date=support_request.requested_start_date,
+                    end_date=support_request.requested_end_date,
+                    location=support_request.related_incident.location,
+                    parent_incident=support_request.related_incident,
+                    support_request=support_request,
+                )
+
+            # Create incident link
+            IncidentLink.objects.create(
+                from_incident=new_incident,
+                to_incident=support_request.related_incident,
+                relationship_type="SUPPORTS",
+                notes=f"Created from support request: {support_request.title}",
+                created_by=request.user,
+            )
+
+            support_request.status = "FULFILLED"
+            support_request.save()
+
+            messages.success(
+                request,
+                f"Created incident '{new_incident.name}' and linked it to the original incident.",
+            )
+            return redirect("operations:incident_detail", incident_id=new_incident.id)
+
+        return redirect("operations:support_request_detail", request_id=support_request.id)
+
+    context = {
+        "support_request": support_request,
+        "can_review": can_review,
+        "can_create_incident": can_create_incident,
+        "can_cancel": can_cancel,
+    }
+    return render(request, "operations/support/request_detail.html", context)
+
+
+@login_required
+def switch_organization(request, org_id):
+    """
+    Switch the user's current active organization context.
+    This affects which incidents and data they see in the interface.
+    """
+    try:
+        organization = get_object_or_404(IncidentOrganization, id=org_id)
+
+        # Verify user has access to this organization
+        if not IncidentOrganizationUser.objects.filter(
+            user=request.user, organization=organization
+        ).exists():
+            messages.error(request, "You don't have access to that organization.")
+            return redirect("operations:dashboard")
+
+        # Set the current organization in session
+        request.session["current_organization_id"] = org_id
+        messages.success(request, f"Switched to {organization.name}")
+
+    except IncidentOrganization.DoesNotExist:
+        messages.error(request, "Organization not found.")
+
+    # Redirect back to where they came from, or dashboard
+    return redirect(request.META.get("HTTP_REFERER", "operations:dashboard"))
+
+
+@login_required
+def clear_organization(request):
+    """
+    Clear the current organization context, showing data from all organizations.
+    """
+    request.session.pop("current_organization_id", None)
+    messages.success(
+        request, "Cleared organization filter - now showing data from all your organizations."
+    )
+
+    # Redirect back to where they came from, or dashboard
+    return redirect(request.META.get("HTTP_REFERER", "operations:dashboard"))

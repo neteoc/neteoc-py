@@ -29,6 +29,10 @@
                     </li>
                 {% endfor %}
             </ul>
+            <!-- Organization Switcher -->
+            {% if user.is_authenticated %}
+                <div class="me-3">{% include "operations/components/organization_switcher.html" %}</div>
+            {% endif %}
             <!-- User Authentication Section -->
             <ul class="navbar-nav">
                 {% if user.is_authenticated %}

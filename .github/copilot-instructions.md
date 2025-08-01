@@ -20,6 +20,8 @@ The local emergency management agency (EMA) is dealing with a hurricane. The fir
 
 The EMA needs to request support from another organization, such as the state defense force (SDF). They would visit the SDF's public profile page and request support. The SDF would then create an incident based on that request for support for that hurricane and assign an incident commander. The incident commander would then be able to manage the incident, including assigning check-ins to soldiers. Those two incidents would be linked together so that the EMA can see the SDF's incident and the SDF can see the EMA's incident. This way each organization maintains control over their own incidents and can link them with other organization's incidents for better tracking.
 
+Since a user can be a member of multiple organizations, the system should allow users to switch between organizations. This is important for users who may be involved in multiple incidents across different organizations.
+
 
 ## Project Infrastructure
 
@@ -41,19 +43,71 @@ When an incident is created, the user creating the incident should be automatica
 
 An incident should have a primary organization associated with it. This organization is the primary entity responsible for the incident and should be displayed on the incident page. Incidents should be able to be associated with other incidents, such as a parent incident or related incidents. This way each organization maintains control over their own incidents and can link them with other organization's incidents for better tracking.
 
+A user should have only one incident context active at any given time. A user should be able to quickly switch to another incident context if needed, but any actions should only apply to the current incident context. Other incidents should not be affected by actions taken in the current incident context.
+
+Users should be able to see other incidents they or their organizations are involved in on a dashboard or overview page. This should include incidents they own, incidents they are a member of, and incidents they have been invited to.
+
+The user should be able to request support from an org they are also a member of. In a disaster a Liaison Officer (LNO) could be assigned before any formal requests are made. That LNO may be the user that fills out the request on behalf of the agency they are assigned temporarily to.
+
+The only limit on what org can be a target is that it can't be the same one that is requesting.
+
+## Support Request Workflow
+
+The support request workflow allows organizations to request support from other organizations for incidents. This is useful for coordinating disaster response efforts between different organizations. A user should be able to create a draft request and save it for later, or submit it immediately.
+
+A user with the appropriate permissions should be able to create a support request for an incident. Other users from the same organization should be able to view the support request and its status as well as cancel it.
+
+A support request should collect the following information:
+
+- Form data
+  - Name: Default to the requesting organization's incident name
+  - Description: Details about the support needed
+  - Location name: The name of the location where support is needed. For example: County EOC, City Hall, etc.
+  - Location address 1: The street address of the location where support is needed
+  - Location address 2: Optional second line for the street address
+  - Location city: The city where the location is
+  - Location state: The state where the location is
+  - Location zip: The zip code of the location
+  - Start date: When the support is needed to start
+  - End date: When the support is needed to end, estimate is fine, this can be updated later.
+  - Urgency level: How urgent the support request is (low, medium, high, life safety)
+- User: the user making the request
+- Requesting organization: the organization making the request
+- Target organization: the organization being requested for support
+- Related incident: the incident this support request is related to
+
+Support requests should have the following statuses:
+
+- Draft: The request is being prepared and not yet submitted
+- Pending: The request has been submitted and is awaiting review
+- Approved: The request has been approved by the target organization
+- Declined: The request has been declined by the target organization
+- Fulfilled: The request has been fulfilled and support has been provided
+- Cancelled: The request has been cancelled by the requesting organization
+
 ## User Permissions and Access Control
 
-Organizations should configured using [django-organizations](../docs/django-orgs-cookbook.rst)
+Organizations should be configured using [django-organizations](../docs/django-orgs-cookbook.rst)
 
 Users should be able to sign up and create an account, however, they will not be able to do anything other than update their profile until they are invited into an organization.
 
 ## Code Style and Standards
+
+Any documentation should be written in markdown (.md) format and should be placed in the `docs` directory. This excludes the projects main [README.md]('../README.md') file which should be in the root directory. A table of contents should be included in the `docs` directory [README.md](../docs/README.md) file that links to the rest of the documentation in the `docs` directory.
+
+The main readme file should be used to provide an overview of the project, how to run it locally, and any other relevant information. Deeper or more specific documentation should be placed in the `docs` directory with links to it in the main readme file.
+
+The project should follow the [Django coding style guide](https://docs.djangoproject.com/en/5.2/internals/contributing/writing-code/coding-style/) and the [Django REST framework style guide](https://www.django-rest-framework.org/topics/documenting-your-api/#style-guide).
+
+Functions, classes, and methods should be documented using docstrings. The docstrings should follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
 
 All basic resources should have basic CRUD functionality and be accessible via the Django admin interface. CRUD functionality should also be available through the web interface for users with the appropriate permissions.
 
 All code should follow the PEP 8 style guide for Python code. Use `uv run ruff` for linting and formatting of Python code.
 
 Run `pre-commit run --all-files` to check code style and standards.
+
+unit tests should be created for all new functionality and should be placed in the `tests` directory. All tests should be run using `uv run python manage.py test`. Tests should be written using the django test framework and should follow the [Django testing documentation](https://docs.djangoproject.com/en/5.2/topics/testing/overview/).
 
 ## Security
 
@@ -62,6 +116,8 @@ All endpoints other than the wagtail managed public pages should be protected by
 ## Python Instructions
 
 The UV tool should be used to manage python.
+
+ALWAYS USE `uv run` to run python commands. This ensures that the correct environment is used and that the command is run in the context of the project.
 
 When running python commands use `uv run` prefixed to the command to ensure the correct environment is used.
 

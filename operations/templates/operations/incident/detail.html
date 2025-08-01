@@ -213,6 +213,10 @@
                                class="btn btn-outline-primary btn-sm">
                                 <i class="fa fa-chart-line me-1"></i>View Full Report
                             </a>
+                            <a href="{% url 'operations:request_support_for_incident' incident_id=incident.id %}"
+                               class="btn btn-outline-warning btn-sm">
+                                <i class="fa fa-handshake me-1"></i>Request Support
+                            </a>
                             {% if can_edit %}
                                 <a href="{% url 'admin:operations_incident_change' incident.id %}"
                                    class="btn btn-outline-info btn-sm">

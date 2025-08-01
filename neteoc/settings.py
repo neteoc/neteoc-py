@@ -55,9 +55,9 @@ load_loguru(globals(), configure_func=setup_loguru)
 logger.debug("Loguru is running")
 
 MAINTENANCE_MODE_STATE_BACKEND = "maintenance_mode.backends.DefaultStorageBackend"
-MAINTENANCE_MODE_IGNORE_ADMIN = True
-MAINTENANCE_MODE_IGNORE_STAFF = True
-MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+MAINTENANCE_MODE_IGNORE_ADMIN = False
+MAINTENANCE_MODE_IGNORE_STAFF = False
+MAINTENANCE_MODE_IGNORE_SUPERUSER = False
 MAINTENANCE_MODE_RETRY_AFTER = 240
 
 
@@ -128,6 +128,12 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1
 
+MAINTENANCE_MODE_STATE_BACKEND = "maintenance_mode.backends.DefaultStorageBackend"
+MAINTENANCE_MODE_IGNORE_ADMIN = True
+MAINTENANCE_MODE_IGNORE_STAFF = True
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+MAINTENANCE_MODE_RETRY_AFTER = 240
+
 
 # if DEBUG:
 # Add django_browser_reload only in DEBUG mode
@@ -166,6 +172,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "operations.context_processors.organization_context",
             ],
         },
     },
@@ -221,12 +228,43 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 MBTILES_DATABASE = BASE_DIR / "demo" / "data" / "berlin.mbtiles"
 
+CLOUDFLARE_R2_CONFIG_OPTIONS = {
+    "access_key": config("AWS_ACCESS_KEY_ID"),
+    "secret_key": config("AWS_SECRET_ACCESS_KEY"),
+    "bucket_name": config("AWS_STORAGE_BUCKET_NAME"),
+    # "default_acl": 'public-read',
+    "file_overwrite": False,
+    "region_name": config("AWS_S3_REGION_NAME"),
+    # "location": config("AWS_LOCATION"),
+    "endpoint_url": config("AWS_S3_ENDPOINT_URL"),
+    "addressing_style": "path",
+    # "custom_domain": config("AWS_S3_CUSTOM_DOMAIN"),
+    "querystring_auth": True,
+    "signature_version": "s3v4",
+}
+
+CLOUDFLARE_R2_CONFIG_OPTIONS_STATIC = {
+    "default_acl": "public-read",
+    "location": f"{config('AWS_LOCATION')}/staticfiles/",
+    # "custom_domain": config("AWS_S3_CUSTOM_DOMAIN"),
+}
+CLOUDFLARE_R2_CONFIG_OPTIONS_STATIC.update(CLOUDFLARE_R2_CONFIG_OPTIONS)
+
+CLOUDFLARE_R2_CONFIG_OPTIONS_MEDIA = {
+    "default_acl": "private",
+    "location": f"{config('AWS_LOCATION')}/media/",
+}
+CLOUDFLARE_R2_CONFIG_OPTIONS_MEDIA.update(CLOUDFLARE_R2_CONFIG_OPTIONS)
+
+
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": CLOUDFLARE_R2_CONFIG_OPTIONS_STATIC,
+    },
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": CLOUDFLARE_R2_CONFIG_OPTIONS_MEDIA,
     },
 }
 

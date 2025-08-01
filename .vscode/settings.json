@@ -2,9 +2,13 @@
   "postman.settings.dotenv-detection-notification-visibility": false,
   "cSpell.words": ["authentik", "MBTILES", "neteoc"],
   "[html]": {
-  "editor.defaultFormatter": "monosans.djlint"
+    "editor.defaultFormatter": "monosans.djlint"
   },
   "[django-html]": {
     "editor.defaultFormatter": "monosans.djlint"
   },
+  "sonarlint.connectedMode.project": {
+    "connectionId": "neteoc",
+    "projectKey": "neteoc_neteoc-py"
+  }
 }

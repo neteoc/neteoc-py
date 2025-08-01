@@ -201,6 +201,23 @@ class Incident(models.Model):
         related_name="created_incidents",
         help_text="Admin user who created this incident",
     )
+    # Incident linking fields for multi-organization coordination
+    parent_incident = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="child_incidents",
+        help_text="Parent incident that this incident supports or is related to",
+    )
+    support_request = models.ForeignKey(
+        "SupportRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_incidents",
+        help_text="Support request that led to the creation of this incident",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -377,3 +394,166 @@ class CheckIn(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.incident.name}"
+
+
+class SupportRequest(models.Model):
+    """
+    Represents a request for support from one organization to another
+    Example: EMA requesting support from State Defense Force for hurricane response
+    """
+
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("APPROVED", "Approved"),
+        ("DECLINED", "Declined"),
+        ("FULFILLED", "Fulfilled"),
+        ("CANCELLED", "Cancelled"),
+    ]
+
+    URGENCY_CHOICES = [
+        ("LOW", "Low"),
+        ("MEDIUM", "Medium"),
+        ("HIGH", "High"),
+        ("CRITICAL", "Critical"),
+    ]
+
+    # Request details
+    title = models.CharField(max_length=200, help_text="Brief title of the support request")
+    description = models.TextField(help_text="Detailed description of what support is needed")
+    urgency = models.CharField(
+        max_length=10,
+        choices=URGENCY_CHOICES,
+        default="MEDIUM",
+        help_text="Urgency level of the request",
+    )
+
+    # Organizations involved
+    requesting_organization = models.ForeignKey(
+        "IncidentOrganization",
+        on_delete=models.CASCADE,
+        related_name="outgoing_support_requests",
+        help_text="Organization requesting support",
+    )
+    target_organization = models.ForeignKey(
+        "IncidentOrganization",
+        on_delete=models.CASCADE,
+        related_name="incoming_support_requests",
+        help_text="Organization being asked to provide support",
+    )
+
+    # Related incident
+    related_incident = models.ForeignKey(
+        "Incident",
+        on_delete=models.CASCADE,
+        related_name="support_requests",
+        help_text="The incident that needs support",
+    )
+
+    # Request management
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="created_support_requests",
+        help_text="User who created this support request",
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_support_requests",
+        help_text="User who reviewed this request",
+    )
+
+    # Status and timing
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="PENDING",
+        help_text="Current status of the support request",
+    )
+    requested_start_date = models.DateTimeField(help_text="When support is needed to start")
+    requested_end_date = models.DateTimeField(
+        null=True, blank=True, help_text="When support is expected to end (optional)"
+    )
+
+    # Response details
+    response_notes = models.TextField(blank=True, help_text="Notes from the reviewing organization")
+    approved_resources = models.TextField(
+        blank=True, help_text="Description of what resources were approved"
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the request was reviewed"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Support Request"
+        verbose_name_plural = "Support Requests"
+
+    def __str__(self):
+        return (
+            f"{self.title} - {self.requesting_organization.name} → {self.target_organization.name}"
+        )
+
+    @property
+    def is_pending(self):
+        return self.status == "PENDING"
+
+    @property
+    def is_approved(self):
+        return self.status == "APPROVED"
+
+    @property
+    def can_create_incident(self):
+        """Check if this approved request can be used to create a supporting incident"""
+        return self.status == "APPROVED" and not hasattr(self, "created_incidents")
+
+
+class IncidentLink(models.Model):
+    """
+    Represents a relationship between two incidents, typically from different organizations
+    This allows tracking of coordinated response efforts
+    """
+
+    RELATIONSHIP_TYPES = [
+        ("SUPPORTS", "Supports - this incident supports the linked incident"),
+        ("SUPPORTED_BY", "Supported By - this incident is supported by the linked incident"),
+        ("COORDINATES", "Coordinates - incidents are coordinating together"),
+        ("RELATED", "Related - incidents are related but not directly supporting"),
+    ]
+
+    from_incident = models.ForeignKey(
+        "Incident",
+        on_delete=models.CASCADE,
+        related_name="outgoing_links",
+        help_text="The incident this link originates from",
+    )
+    to_incident = models.ForeignKey(
+        "Incident",
+        on_delete=models.CASCADE,
+        related_name="incoming_links",
+        help_text="The incident this link points to",
+    )
+    relationship_type = models.CharField(
+        max_length=15,
+        choices=RELATIONSHIP_TYPES,
+        help_text="Type of relationship between incidents",
+    )
+    notes = models.TextField(blank=True, help_text="Additional notes about the relationship")
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, help_text="User who created this link"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [["from_incident", "to_incident", "relationship_type"]]
+        verbose_name = "Incident Link"
+        verbose_name_plural = "Incident Links"
+
+    def __str__(self):
+        return f"{self.from_incident.name} {self.get_relationship_type_display()} {self.to_incident.name}"
