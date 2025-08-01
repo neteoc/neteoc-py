@@ -12,12 +12,13 @@ class IncidentAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
         "location",
+        "owner",
         "total_checkins_display",
         "active_checkins_display",
         "created_by",
     ]
-    list_filter = ["status", "incident_type", "start_date", "created_by"]
-    search_fields = ["name", "description", "location"]
+    list_filter = ["status", "incident_type", "start_date", "owner", "created_by"]
+    search_fields = ["name", "description", "location", "owner__username"]
     readonly_fields = [
         "created_at",
         "updated_at",
@@ -28,7 +29,7 @@ class IncidentAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Basic Information", {"fields": ("name", "incident_type", "description", "status")}),
         ("Dates & Location", {"fields": ("start_date", "end_date", "location")}),
-        ("Management", {"fields": ("created_by",)}),
+        ("Management", {"fields": ("owner", "created_by")}),
         (
             "Statistics",
             {
@@ -62,10 +63,60 @@ class IncidentAdmin(admin.ModelAdmin):
     active_checkins_display.short_description = "Currently Checked In"
 
     def save_model(self, request, obj, form, change):
-        """Auto-set created_by to current user when creating new incident"""
+        """Auto-set created_by and owner to current user when creating new incident"""
         if not change:  # Only for new objects
             obj.created_by = request.user
+            # If no owner is set, default to current user
+            if not obj.owner:
+                obj.owner = request.user
         super().save_model(request, obj, form, change)
+
+    def get_queryset(self, request):
+        """Filter incidents based on user permissions"""
+        qs = super().get_queryset(request)
+
+        # Superusers and staff can see all incidents
+        if request.user.is_superuser or request.user.is_staff:
+            return qs
+
+        # Users can see incidents they own, or incidents they have group access to
+        from django.db.models import Q
+
+        # Start with incidents user owns
+        user_filter = Q(owner=request.user)
+
+        # Add incidents user has access to via groups
+        if request.user.groups.filter(
+            name__in=["Incident Admins", "Incident Responders", "Incident Viewers"]
+        ).exists():
+            # Users in these groups can see all incidents
+            return qs
+
+        return qs.filter(user_filter)
+
+    def has_change_permission(self, request, obj=None):
+        """Check if user can change this incident"""
+        if not obj:
+            return super().has_change_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_change_permission(request):
+            return False
+
+        # Check incident-specific permissions
+        return obj.has_admin_access(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        """Check if user can delete this incident"""
+        if not obj:
+            return super().has_delete_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_delete_permission(request):
+            return False
+
+        # Check incident-specific permissions
+        return obj.has_admin_access(request.user)
 
 
 @admin.register(CheckIn)
@@ -99,5 +150,48 @@ class CheckInAdmin(admin.ModelAdmin):
     total_expenses.admin_order_field = "food_expenses"
 
     def get_queryset(self, request):
-        """Optimize queryset with select_related"""
-        return super().get_queryset(request).select_related("incident", "user")
+        """Optimize queryset with select_related and apply permission filtering"""
+        qs = super().get_queryset(request).select_related("incident", "user")
+
+        # Superusers and staff can see all check-ins
+        if request.user.is_superuser or request.user.is_staff:
+            return qs
+
+        # Filter based on incident access
+        from django.db.models import Q
+
+        # Users can see check-ins for incidents they have access to
+        incident_filter = Q(incident__owner=request.user)
+
+        # Add incidents user has access to via groups
+        if request.user.groups.filter(
+            name__in=["Incident Admins", "Incident Responders", "Incident Viewers"]
+        ).exists():
+            # Users in these groups can see all check-ins
+            return qs
+
+        return qs.filter(incident_filter)
+
+    def has_change_permission(self, request, obj=None):
+        """Check if user can change this check-in"""
+        if not obj:
+            return super().has_change_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_change_permission(request):
+            return False
+
+        # Check incident-specific permissions
+        return obj.incident.has_write_access(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        """Check if user can delete this check-in"""
+        if not obj:
+            return super().has_delete_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_delete_permission(request):
+            return False
+
+        # Check incident-specific permissions
+        return obj.incident.has_admin_access(request.user)

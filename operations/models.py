@@ -54,6 +54,12 @@ class Incident(models.Model):
     location = models.CharField(
         max_length=200, blank=True, default="", help_text="Primary location of the incident"
     )
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="owned_incidents",
+        help_text="The user who owns and has full control over this incident",
+    )
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -87,6 +93,55 @@ class Incident(models.Model):
     def active_checkins(self):
         """Get number of people currently checked in (not checked out)"""
         return self.checkins.filter(Check_Out=False).count()
+
+    def has_admin_access(self, user):
+        """Check if user has admin access to this incident"""
+        if not user.is_authenticated:
+            return False
+
+        # Owner has full admin access
+        if self.owner == user:
+            return True
+
+        # Check if user is in incident admin group
+        if user.groups.filter(name="Incident Admins").exists():
+            return True
+
+        # Check if user is a superuser or staff
+        if user.is_superuser or user.is_staff:
+            return True
+
+        return False
+
+    def has_read_access(self, user):
+        """Check if user has read access to this incident"""
+        if not user.is_authenticated:
+            return False
+
+        # Admin access includes read access
+        if self.has_admin_access(user):
+            return True
+
+        # Check if user is in read-only group
+        if user.groups.filter(name="Incident Viewers").exists():
+            return True
+
+        return False
+
+    def has_write_access(self, user):
+        """Check if user has write access (can create/edit check-ins) to this incident"""
+        if not user.is_authenticated:
+            return False
+
+        # Admin access includes write access
+        if self.has_admin_access(user):
+            return True
+
+        # Check if user is in responders group
+        if user.groups.filter(name="Incident Responders").exists():
+            return True
+
+        return False
 
 
 class CheckIn(models.Model):

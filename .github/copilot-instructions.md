@@ -6,6 +6,12 @@ A user is a person. A person might not be a user. A person may be a responder or
 
 An incident is a specific occurrence of a disaster or community event. Like a hurricane, flood, or community festival.
 
+The owner of an incident has full administrative control over that incident in the system.
+
+Each incident should also have a user that is the incident commander. This user is the primary point of contact for the incident and has full control over the incident. That user's information should be displayed on the incident page and easily accessible by other users who have permission to view the incident.
+
+
+
 ## Code Style and Standards
 
 Run `pre-commit run --all-files` to check code style and standards.

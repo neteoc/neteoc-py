@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django_tables2 import SingleTableView
 from django.contrib import messages
+from django.db.models import Q
 
 from .lib.aamva import aamva_2020
 import typing
@@ -12,6 +13,28 @@ from .tables import CheckInTable
 from logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def get_accessible_incidents(user):
+    """Get incidents that the user has access to based on ownership and group membership"""
+    if not user.is_authenticated:
+        return Incident.objects.none()
+
+    # Superusers and staff can see all incidents
+    if user.is_superuser or user.is_staff:
+        return Incident.objects.all()
+
+    # Start with incidents user owns
+    user_filter = Q(owner=user)
+
+    # Add incidents user has access to via groups
+    if user.groups.filter(
+        name__in=["Incident Admins", "Incident Responders", "Incident Viewers"]
+    ).exists():
+        # Users in these groups can see all incidents
+        return Incident.objects.all()
+
+    return Incident.objects.filter(user_filter)
 
 
 def decode_aamva_fields(pdf417_data_txt: typing.List[str]) -> dict:
@@ -35,8 +58,8 @@ def dashboard(request):
     """Main operations dashboard providing an overview of all operations activities"""
     context = {}
 
-    # Get all incidents (active and inactive) with stats
-    all_incidents = Incident.objects.all().order_by("-start_date")
+    # Get incidents user has access to
+    all_incidents = get_accessible_incidents(request.user).order_by("-start_date")
     active_incidents = all_incidents.filter(status="ACTIVE")
 
     # Overall statistics
@@ -82,8 +105,13 @@ class report(SingleTableView):
     template_name = "operations/checkin/report.html"
 
     def get_queryset(self):
-        """Filter check-ins by incident if specified"""
+        """Filter check-ins by incident if specified and user permissions"""
         queryset = super().get_queryset()
+
+        # Filter by accessible incidents
+        accessible_incidents = get_accessible_incidents(self.request.user)
+        queryset = queryset.filter(incident__in=accessible_incidents)
+
         incident_id = self.request.GET.get("incident")
         if incident_id:
             queryset = queryset.filter(incident_id=incident_id)
@@ -92,12 +120,16 @@ class report(SingleTableView):
     def get_context_data(self, **kwargs):
         """Add incidents list and current incident to context"""
         context = super().get_context_data(**kwargs)
-        context["incidents"] = Incident.objects.filter(status="ACTIVE").order_by("-start_date")
+
+        # Only show incidents user has access to
+        accessible_incidents = get_accessible_incidents(self.request.user)
+        context["incidents"] = accessible_incidents.filter(status="ACTIVE").order_by("-start_date")
 
         incident_id = self.request.GET.get("incident")
         if incident_id:
             try:
-                context["current_incident"] = Incident.objects.get(id=incident_id)
+                # Make sure user has access to this incident
+                context["current_incident"] = accessible_incidents.get(id=incident_id)
             except Incident.DoesNotExist:
                 pass
 
@@ -109,13 +141,14 @@ def index(request):
     """Main check-in dashboard showing active incidents and recent check-ins"""
     context = {}
 
-    # Get active incidents
-    active_incidents = Incident.objects.filter(status="ACTIVE").order_by("-start_date")
+    # Get active incidents user has access to
+    accessible_incidents = get_accessible_incidents(request.user)
+    active_incidents = accessible_incidents.filter(status="ACTIVE").order_by("-start_date")
     context["active_incidents"] = active_incidents
 
-    # Get recent check-ins across all active incidents
+    # Get recent check-ins across all accessible active incidents
     recent_checkins = (
-        CheckIn.objects.filter(incident__status="ACTIVE")
+        CheckIn.objects.filter(incident__in=active_incidents)
         .select_related("incident", "user")
         .order_by("-timestamp")[:10]
     )
@@ -140,8 +173,14 @@ def new(request, incident_id):
     """Create a new check-in for a specific incident"""
     context = {}
 
-    # Get the specific incident
+    # Get the specific incident and verify user has write access
     incident = get_object_or_404(Incident, id=incident_id, status="ACTIVE")
+
+    # Check if user has write access to this incident
+    if not incident.has_write_access(request.user):
+        messages.error(request, "You don't have permission to check-in to this incident.")
+        return redirect("operations:checkin_index")
+
     context["incident"] = incident
 
     # Pass incident to form constructor

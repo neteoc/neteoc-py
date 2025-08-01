@@ -113,6 +113,10 @@
                                                 <br>
                                                 <i class="fa fa-map-marker-alt me-1"></i>{{ stats.incident.location }}
                                             {% endif %}
+                                            {% if stats.incident.owner %}
+                                                <br>
+                                                <i class="fa fa-user me-1"></i>Owner: {{ stats.incident.owner.get_full_name|default:stats.incident.owner.username }}
+                                            {% endif %}
                                         </small>
                                     </div>
                                     <div class="col-md-3 text-center">
