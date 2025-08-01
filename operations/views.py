@@ -30,6 +30,52 @@ def decode_aamva_fields(pdf417_data_txt: typing.List[str]) -> dict:
     return results
 
 
+@login_required()
+def dashboard(request):
+    """Main operations dashboard providing an overview of all operations activities"""
+    context = {}
+
+    # Get all incidents (active and inactive) with stats
+    all_incidents = Incident.objects.all().order_by("-start_date")
+    active_incidents = all_incidents.filter(status="ACTIVE")
+
+    # Overall statistics
+    total_incidents = all_incidents.count()
+    active_incidents_count = active_incidents.count()
+    total_checkins_all_time = CheckIn.objects.count()
+    current_active_checkins = CheckIn.objects.filter(
+        Check_Out=False, incident__status="ACTIVE"
+    ).count()
+
+    # Recent activity across all incidents
+    recent_checkins = CheckIn.objects.select_related("incident", "user").order_by("-timestamp")[:10]
+
+    # Incident statistics
+    incident_stats = []
+    for incident in all_incidents[:10]:  # Show top 10 most recent incidents
+        stats = {
+            "incident": incident,
+            "total_checkins": incident.total_checkins,
+            "active_checkins": incident.active_checkins,
+            "is_active": incident.status == "ACTIVE",
+        }
+        incident_stats.append(stats)
+
+    context.update(
+        {
+            "active_incidents": active_incidents,
+            "incident_stats": incident_stats,
+            "recent_checkins": recent_checkins,
+            "total_incidents": total_incidents,
+            "active_incidents_count": active_incidents_count,
+            "total_checkins_all_time": total_checkins_all_time,
+            "current_active_checkins": current_active_checkins,
+        }
+    )
+
+    return render(request, "operations/dashboard.html", context)
+
+
 class report(SingleTableView):
     model = CheckIn
     table_class = CheckInTable

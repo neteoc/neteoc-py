@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fa fa-tachometer-alt me-2"></i>Operations Dashboard
+        </h1>
+        <div class="btn-group">
+            <a href="{% url 'operations:checkin_index' %}" class="btn btn-primary">
+                <i class="fa fa-clipboard-check me-1"></i>Check-in System
+            </a>
+            <a href="{% url 'operations:checkin_report' %}"
+               class="btn btn-outline-secondary">
+                <i class="fa fa-chart-bar me-1"></i>Reports
+            </a>
+            <a href="{% url 'admin:operations_incident_changelist' %}"
+               class="btn btn-outline-info">
+                <i class="fa fa-cog me-1"></i>Manage Incidents
+            </a>
+        </div>
+    </div>
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Active Incidents</h6>
+                            <h3 class="mb-0">{{ active_incidents_count }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fa fa-exclamation-triangle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Currently Checked In</h6>
+                            <h3 class="mb-0">{{ current_active_checkins }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fa fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Incidents</h6>
+                            <h3 class="mb-0">{{ total_incidents }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fa fa-calendar-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Check-ins</h6>
+                            <h3 class="mb-0">{{ total_checkins_all_time }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fa fa-clipboard-list fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Incidents Overview -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa fa-list me-2"></i>Recent Incidents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if incident_stats %}
+                        {% for stats in incident_stats %}
+                            <div class="border rounded p-3 mb-3 {% if stats.is_active %}bg-light border-success{% else %}border-secondary{% endif %}">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h6 class="mb-1">
+                                            {{ stats.incident.name }}
+                                            <small class="text-muted">({{ stats.incident.get_incident_type_display }})</small>
+                                            {% if stats.is_active %}
+                                                <span class="badge bg-success ms-2">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary ms-2">{{ stats.incident.status|title }}</span>
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted">
+                                            <i class="fa fa-clock me-1"></i>Started: {{ stats.incident.start_date|date:"M d, Y g:i A" }}
+                                            {% if stats.incident.location %}
+                                                <br>
+                                                <i class="fa fa-map-marker-alt me-1"></i>{{ stats.incident.location }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-3 text-center">
+                                        <div class="stats-box">
+                                            <div class="h5 mb-0 text-success">{{ stats.active_checkins }}</div>
+                                            <small class="text-muted">Active</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 text-center">
+                                        <div class="stats-box">
+                                            <div class="h5 mb-0 text-info">{{ stats.total_checkins }}</div>
+                                            <small class="text-muted">Total</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if stats.is_active %}
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'operations:checkin_new' incident_id=stats.incident.id %}"
+                                                   class="btn btn-success btn-sm">
+                                                    <i class="fa fa-plus me-1"></i>Check In
+                                                </a>
+                                                <a href="{% url 'operations:checkin_report' %}?incident={{ stats.incident.id }}"
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fa fa-chart-line me-1"></i>View Report
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No incidents found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Recent Activity -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-clock me-2"></i>Recent Activity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_checkins %}
+                        {% for checkin in recent_checkins %}
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>{{ checkin.first_name }} {{ checkin.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ checkin.incident.name }}
+                                        {% if checkin.Check_Out %}
+                                            <span class="badge bg-secondary">Checked Out</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Checked In</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <small class="text-muted">{{ checkin.timestamp|date:"M d g:i A" }}</small>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No recent activity</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Quick Actions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fa fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if active_incidents %}
+                            <div class="dropdown">
+                                <button class="btn btn-success dropdown-toggle w-100"
+                                        type="button"
+                                        data-bs-toggle="dropdown">
+                                    <i class="fa fa-plus me-1"></i>Quick Check-in
+                                </button>
+                                <ul class="dropdown-menu w-100">
+                                    {% for incident in active_incidents %}
+                                        <li>
+                                            <a class="dropdown-item"
+                                               href="{% url 'operations:checkin_new' incident_id=incident.id %}">{{ incident.name }}</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        <a href="{% url 'operations:checkin_report' %}"
+                           class="btn btn-outline-primary">
+                            <i class="fa fa-chart-bar me-1"></i>View All Reports
+                        </a>
+                        <a href="{% url 'admin:operations_incident_changelist' %}"
+                           class="btn btn-outline-info">
+                            <i class="fa fa-plus me-1"></i>Create Incident
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if not active_incidents %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <h5>
+                        <i class="fa fa-exclamation-triangle me-2"></i>No Active Incidents
+                    </h5>
+                    <p>There are currently no active incidents. You can create a new incident to begin operations.</p>
+                    <a href="{% url 'admin:operations_incident_changelist' %}"
+                       class="btn btn-warning">
+                        <i class="fa fa-plus me-1"></i>Create New Incident
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <style>
+.stats-box {
+    text-align: center;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.opacity-75 {
+    opacity: 0.75;
+}
+    </style>
+{% endblock content %}
