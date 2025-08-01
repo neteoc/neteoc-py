@@ -19,5 +19,6 @@ urlpatterns = [
         name="checkout",
     ),
     path("profile/", views.profile, name="profile"),
+    path("get_user_roster_id/<int:user_id>/", views.get_user_roster_id, name="get_user_roster_id"),
     path("", views.index, name="index"),
 ]

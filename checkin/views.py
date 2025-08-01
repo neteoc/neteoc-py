@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django_tables2 import SingleTableView
 from django.contrib import messages
+from django.http import JsonResponse
+from django.contrib.auth.models import User
 
 from .lib.aamva import aamva_2020
 import typing
@@ -117,7 +119,7 @@ def checkout(request, pk):
 @login_required()
 def profile(request):
     """
-    Allow users to manage their profile including roster ID
+    Allow users to manage their profile including roster ID and address
     """
     # Get or create the user's profile
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
@@ -125,7 +127,7 @@ def profile(request):
     if request.method == "POST":
         form = UserProfileForm(request.POST, instance=user_profile)
         if form.is_valid():
-            form.save()
+            form.save(request.user)
             messages.success(request, "Your profile has been updated successfully!")
             return redirect("checkin:profile")
         else:
@@ -136,3 +138,22 @@ def profile(request):
     context = {"form": form, "user_profile": user_profile, "created": created}
 
     return render(request, "checkin/profile.html", context)
+
+
+@login_required()
+def get_user_roster_id(request, user_id):
+    """
+    AJAX endpoint to get a user's roster ID and names for auto-population
+    """
+    try:
+        user = User.objects.get(id=user_id)
+        user_profile = UserProfile.objects.filter(user=user).first()
+
+        data = {
+            "roster_id": user_profile.roster_id if user_profile else "",
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+        return JsonResponse(data)
+    except User.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)

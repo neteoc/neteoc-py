@@ -1,26 +1,158 @@
 from django import forms
 from django.forms import ModelForm
 from django.contrib.auth.models import User
-from .models import CheckIn, UserProfile
+from .models import CheckIn, UserProfile, Address
 from logging import getLogger
 import re
 
 logger = getLogger(__name__)
 
 
-class UserProfileForm(ModelForm):
+class AddressForm(ModelForm):
     """
-    Form for users to manage their profile information including roster ID
+    Form for handling normalized address data
     """
 
     class Meta:
-        model = UserProfile
-        fields = ["roster_id"]
+        model = Address
+        fields = ["street_1", "street_2", "city", "state", "zip_code"]
         widgets = {
-            "roster_id": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "DOE1234", "maxlength": 7}
-            )
+            "street_1": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "123 Main Street"}
+            ),
+            "street_2": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Apt 2B, Suite 100 (optional)"}
+            ),
+            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "City"}),
+            "state": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "CA", "maxlength": 2}
+            ),
+            "zip_code": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "12345 or 12345-6789",
+                    "maxlength": 10,
+                }
+            ),
         }
+
+    def clean_state(self):
+        """Validate state format"""
+        state = self.cleaned_data.get("state", "").upper()
+        if state and len(state) != 2:
+            raise forms.ValidationError("State must be a 2-letter abbreviation (e.g., CA, NY)")
+        return state
+
+    def clean_zip_code(self):
+        """Validate ZIP code format"""
+        zip_code = self.cleaned_data.get("zip_code", "")
+        if zip_code and not re.match(r"^\d{5}(-\d{4})?$", zip_code):
+            raise forms.ValidationError("ZIP code must be in format 12345 or 12345-6789")
+        return zip_code
+
+
+class UserProfileForm(forms.Form):
+    """
+    Form for users to manage their profile information including roster ID and address
+    """
+
+    # UserProfile fields
+    roster_id = forms.CharField(
+        max_length=7,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "DOE1234", "maxlength": 7}
+        ),
+        help_text="Your default roster ID (e.g., DOE1234)",
+    )
+    drivers_license_id = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "DL123456789", "maxlength": 20}
+        ),
+        help_text="Your driver's license ID number",
+    )
+
+    # Address fields
+    street_1 = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "123 Main Street"}),
+        help_text="Street address line 1",
+    )
+    street_2 = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "Apt 2B, Suite 100 (optional)"}
+        ),
+        help_text="Street address line 2 (optional)",
+    )
+    city = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "City"}),
+        help_text="City name",
+    )
+    state = forms.CharField(
+        max_length=2,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "CA", "maxlength": 2}
+        ),
+        help_text="State abbreviation (e.g., CA, NY)",
+    )
+    zip_code = forms.CharField(
+        max_length=10,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "12345 or 12345-6789", "maxlength": 10}
+        ),
+        help_text="ZIP code",
+    )
+
+    # Optional coordinate fields for manual entry
+    latitude = forms.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={"class": "form-control", "placeholder": "40.7128", "step": "any"}
+        ),
+        help_text="Latitude (optional, for precise location)",
+    )
+    longitude = forms.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={"class": "form-control", "placeholder": "-74.0060", "step": "any"}
+        ),
+        help_text="Longitude (optional, for precise location)",
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+
+        # Pre-populate fields if instance exists
+        if self.instance:
+            self.fields["roster_id"].initial = self.instance.roster_id
+            self.fields["drivers_license_id"].initial = self.instance.drivers_license_id
+
+            # Pre-populate address fields if address exists
+            if self.instance.address:
+                self.fields["street_1"].initial = self.instance.address.street_1
+                self.fields["street_2"].initial = self.instance.address.street_2
+                self.fields["city"].initial = self.instance.address.city
+                self.fields["state"].initial = self.instance.address.state
+                self.fields["zip_code"].initial = self.instance.address.zip_code
+
+                # Pre-populate coordinates if available
+                if self.instance.address.location:
+                    self.fields["latitude"].initial = self.instance.address.latitude
+                    self.fields["longitude"].initial = self.instance.address.longitude
 
     def clean_roster_id(self):
         """Validate roster ID format"""
@@ -30,6 +162,83 @@ class UserProfileForm(ModelForm):
                 "Roster ID must be 3 letters followed by 4 digits (e.g., ABC1234)"
             )
         return roster_id
+
+    def clean_state(self):
+        """Validate state format"""
+        state = self.cleaned_data.get("state", "").upper()
+        if state and len(state) != 2:
+            raise forms.ValidationError("State must be a 2-letter abbreviation (e.g., CA, NY)")
+        return state
+
+    def clean_zip_code(self):
+        """Validate ZIP code format"""
+        zip_code = self.cleaned_data.get("zip_code", "")
+        if zip_code and not re.match(r"^\d{5}(-\d{4})?$", zip_code):
+            raise forms.ValidationError("ZIP code must be in format 12345 or 12345-6789")
+        return zip_code
+
+    def save(self, user):
+        """Save the form data to UserProfile and Address models"""
+        # Get or create the user profile
+        user_profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # Update UserProfile fields
+        user_profile.roster_id = self.cleaned_data.get("roster_id")
+        user_profile.drivers_license_id = self.cleaned_data.get("drivers_license_id")
+
+        # Handle address data
+        address_data = {
+            "street_1": self.cleaned_data.get("street_1"),
+            "street_2": self.cleaned_data.get("street_2"),
+            "city": self.cleaned_data.get("city"),
+            "state": self.cleaned_data.get("state"),
+            "zip_code": self.cleaned_data.get("zip_code"),
+        }
+
+        # Get coordinate data
+        latitude = self.cleaned_data.get("latitude")
+        longitude = self.cleaned_data.get("longitude")
+
+        # Only create/update address if at least street_1, city, state, and zip_code are provided
+        if (
+            address_data["street_1"]
+            and address_data["city"]
+            and address_data["state"]
+            and address_data["zip_code"]
+        ):
+            if user_profile.address:
+                # Update existing address
+                address = user_profile.address
+                for field, value in address_data.items():
+                    setattr(address, field, value)
+
+                # Update coordinates if provided
+                if latitude is not None and longitude is not None:
+                    address.set_coordinates(longitude, latitude)
+                    address.location_accuracy = "EXACT"
+                elif not address.location:
+                    # Clear coordinates if none provided and none exist
+                    address.location = None
+                    address.location_accuracy = None
+
+                address.save()
+            else:
+                # Create new address
+                address = Address.objects.create(**address_data)
+
+                # Set coordinates if provided
+                if latitude is not None and longitude is not None:
+                    address.set_coordinates(longitude, latitude)
+                    address.location_accuracy = "EXACT"
+                    address.save()
+
+                user_profile.address = address
+        elif not any(address_data.values()):
+            # If all address fields are empty, remove the address reference
+            user_profile.address = None
+
+        user_profile.save()
+        return user_profile
 
 
 class CheckInForm(ModelForm):

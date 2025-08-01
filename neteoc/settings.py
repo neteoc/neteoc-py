@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.gis",
     "allauth_ui",
     "allauth",
     "allauth.account",
@@ -174,6 +175,9 @@ WSGI_APPLICATION = "neteoc.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {"default": dj_database_url.parse(config("DATABASE_URL", cast=str))}
+
+# Note: For full spatial support, configure PostGIS or SpatiaLite when ready
+# DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.spatialite'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
