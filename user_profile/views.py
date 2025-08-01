@@ -1,11 +1,15 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
 from django.contrib.auth.models import User
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 
 from .forms import UserProfileForm
 from .models import UserProfile
+from .serializers import UserRosterSerializer
 
 from logging import getLogger
 
@@ -36,20 +40,51 @@ def profile(request):
     return render(request, "user_profile/profile.html", context)
 
 
-@login_required()
-def get_user_roster_id(request, user_id):
+class UserRosterAPIView(APIView):
     """
-    AJAX endpoint to get a user's roster ID and names for auto-population
-    """
-    try:
-        user = User.objects.get(id=user_id)
-        user_profile = UserProfile.objects.filter(user=user).first()
+    API endpoint to get a user's roster ID and names for auto-population in check-in forms
+    Requires authentication to protect user data
 
-        data = {
-            "roster_id": user_profile.roster_id if user_profile else "",
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-        }
-        return JsonResponse(data)
-    except User.DoesNotExist:
-        return JsonResponse({"error": "User not found"}, status=404)
+    Security Features:
+    - Requires user authentication
+    - Rate limiting applied via DRF settings
+    - Read-only access to user data
+    - Serialized data output for consistency
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        """
+        Get user roster information by user ID
+
+        Args:
+            request: The HTTP request object
+            user_id: The ID of the user to retrieve information for
+
+        Returns:
+            Response: JSON response with user roster data or error message
+
+        Security Notes:
+            - Only authenticated users can access this endpoint
+            - Returns limited user information (no sensitive data)
+            - Logs access attempts for security auditing
+        """
+        logger.info(f"User {request.user.username} requested roster data for user ID {user_id}")
+
+        try:
+            user = User.objects.get(id=user_id)
+            serializer = UserRosterSerializer(user)
+
+            logger.info(f"Successfully retrieved roster data for user {user.username}")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            logger.warning(f"User {request.user.username} requested non-existent user ID {user_id}")
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Unexpected error in UserRosterAPIView: {str(e)}")
+            return Response(
+                {"error": "An error occurred while retrieving user data"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

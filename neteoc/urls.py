@@ -30,6 +30,8 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("operations/", include("operations.urls")),
     path("profile/", include("user_profile.urls")),
+    path("api/", include("api.urls")),  # Versioned API endpoints
+    path("api-auth/", include("rest_framework.urls")),  # DRF browsable API authentication
     # Backward compatibility redirects for old checkin URLs
     path("checkin/", RedirectView.as_view(url="/operations/checkin/", permanent=True)),
     path("checkin/new/", RedirectView.as_view(url="/operations/checkin/new/", permanent=True)),
@@ -43,7 +45,7 @@ urlpatterns = [
     ),
     path(
         "checkin/get_user_roster_id/<int:user_id>/",
-        RedirectView.as_view(url="/profile/api/user/%(user_id)s/roster/", permanent=True),
+        RedirectView.as_view(url="/api/v1/user-profile/user/%(user_id)s/roster/", permanent=True),
     ),
     path("admin/", admin.site.urls),
     path("cms/", include(wagtailadmin_urls)),

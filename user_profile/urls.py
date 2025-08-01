@@ -1,9 +1,11 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = "user_profile"
 
 urlpatterns = [
+    # Web interface URLs
     path("", views.profile, name="profile"),
-    path("api/user/<int:user_id>/roster/", views.get_user_roster_id, name="user_roster_api"),
+    # API URLs (versioned)
+    path("api/", include("user_profile.api_urls")),
 ]

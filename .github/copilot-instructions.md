@@ -29,7 +29,7 @@ https://www.django-rest-framework.org/
 
 Geographic functions and data should make use of GeoDjango: https://docs.djangoproject.com/en/5.2/ref/contrib/gis/
 
-Code should be checked and formated with the tool `ruff` after any changes. There is a shortcut command in the justfile that can be used for this: `just lint`.
+Code should be checked and formatted with the tool `ruff` after any changes. There is a shortcut command in the justfile that can be used for this: `just lint`.
 
 ## HTML Template instructions
 

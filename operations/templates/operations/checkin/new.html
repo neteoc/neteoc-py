@@ -8,8 +8,7 @@
 {% block content %}
 
 <div class="clearfix">
-    {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end"
-    href="/operations/checkin/" %}
+    {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="/operations/checkin/" %}
 </div>
 
 
@@ -47,9 +46,14 @@
                 }
 
                 if (this.value && selectedOption.text !== '-- No user account (manual entry) --') {
-                    // Fetch user data via AJAX
-                    fetch(`/profile/api/user/${this.value}/roster/`)
-                        .then(response => response.json())
+                    // Fetch user data via DRF API
+                    fetch(`/api/v1/user-profile/user/${this.value}/roster/`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             // Auto-populate roster ID if available
                             if (data.roster_id && rosterIdField) {

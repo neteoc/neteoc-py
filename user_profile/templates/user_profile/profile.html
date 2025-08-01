@@ -5,8 +5,7 @@
 {% block content %}
 
 <div class="clearfix mb-4">
-    {% bootstrap_button button_type="link" content="Back to Check-in" button_class="btn-secondary"
-    extra_classes="float-end" href="/operations/checkin/" %}
+    {% bootstrap_button button_type="link" content="Back to Check-in" button_class="btn-secondary" extra_classes="float-end" href="/operations/checkin/" %}
 </div>
 
 <h2>My Profile</h2>
@@ -124,8 +123,7 @@
                     </div>
 
                     <div class="clearfix">
-                        {% bootstrap_button button_type="submit" content="Save Profile" button_class="btn-primary
-                        float-start" %}
+                        {% bootstrap_button button_type="submit" content="Save Profile" button_class="btn-primary float-start" %}
                         <div class="float-end mt-2">
                             {% if user_profile.roster_id %}
                             <small class="text-muted d-block">
