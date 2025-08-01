@@ -5,7 +5,16 @@ from .models import CheckIn
 
 
 class CheckInTable(tables.Table):
+    incident = tables.Column(verbose_name="Incident", orderable=True)
     checkout = tables.Column(empty_values=(), verbose_name="Action", orderable=False)
+
+    def render_incident(self, record):
+        """Display incident name with type"""
+        return format_html(
+            '<span title="{}">{}</span>',
+            record.incident.get_incident_type_display(),
+            record.incident.name,
+        )
 
     def render_checkout(self, record):
         if record.Check_Out:
@@ -28,6 +37,7 @@ class CheckInTable(tables.Table):
     class Meta:
         model = CheckIn
         fields = (
+            "incident",
             "first_name",
             "last_name",
             "roster_id",
@@ -41,6 +51,7 @@ class CheckInTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
         orderable = True
         sequence = (
+            "incident",
             "first_name",
             "last_name",
             "roster_id",

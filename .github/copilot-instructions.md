@@ -12,6 +12,8 @@ All endpoints other than the wagtail managed public pages should be protected by
 
 ## Python Instructions
 
+
+
 The UV tool should be used to manage python.
 
 When running python commands use `uv run` prefixed to the command to ensure the correct environment is used.

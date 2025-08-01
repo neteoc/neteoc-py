@@ -2,33 +2,81 @@
 {% load static %}
 {% load django_bootstrap5 %}
 {% load render_table from django_tables2 %}
-
-
-
 {% block content %}
-
-
-
-<div class="container">
-    <div class="row">
-        <div class="col">
-            {% bootstrap_button button_type="link" content="Back" button_class="btn-primary" extra_classes="float-start" href="/operations/checkin/" %}
+    <div class="container">
+        <div class="row mb-3">
+            <div class="col">
+                {% bootstrap_button button_type="link" content="Back" button_class="btn-primary" extra_classes="float-start" href="/operations/checkin/" %}
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col">
+                <h1>
+                    Check-in Report
+                    {% if current_incident %}<small class="text-muted">- {{ current_incident.name }}</small>{% endif %}
+                </h1>
+            </div>
+        </div>
+        {% if incidents %}
+            <div class="row mb-4">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fa fa-filter"></i> Filter by Incident
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="btn-group flex-wrap" role="group">
+                                        {% bootstrap_button button_type="link" content="All Incidents" button_class="btn-outline-primary" href="/operations/checkin/report/" %}
+                                        {% for incident in incidents %}
+                                            {% if current_incident and incident.id == current_incident.id %}
+                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-primary active" href="/operations/checkin/report/?incident="|add:incident.id %}
+                                            {% else %}
+                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-outline-primary" href="/operations/checkin/report/?incident="|add:incident.id %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if current_incident %}
+                                        <div class="stats-info">
+                                            <small class="text-muted">
+                                                <strong>Active:</strong> {{ current_incident.active_checkins }} |
+                                                <strong>Total:</strong> {{ current_incident.total_checkins }}
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="row">
+            <div class="col">
+                {% if current_incident %}
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i>
+                        Showing check-ins for <strong>{{ current_incident.name }}</strong>
+                        ({{ current_incident.get_incident_type_display }})
+                        {% if current_incident.location %}at {{ current_incident.location }}{% endif %}
+                    </div>
+                {% endif %}
+                {% render_table table %}
+            </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <h1>Checkin Report</h1>
-            {% render_table table %}
-        </div>
-    </div>
-</div>
-
-
-
-
-<p></p>
-
-
-
-
+    <style>
+.btn-group .btn {
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+.stats-info {
+    margin-top: 8px;
+}
+    </style>
 {% endblock content %}

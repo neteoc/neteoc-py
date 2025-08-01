@@ -6,7 +6,7 @@ from django.contrib import messages
 from .lib.aamva import aamva_2020
 import typing
 from .forms import CheckInForm
-from .models import CheckIn
+from .models import Incident, CheckIn
 from .tables import CheckInTable
 
 from logging import getLogger
@@ -35,33 +35,94 @@ class report(SingleTableView):
     table_class = CheckInTable
     template_name = "operations/checkin/report.html"
 
+    def get_queryset(self):
+        """Filter check-ins by incident if specified"""
+        queryset = super().get_queryset()
+        incident_id = self.request.GET.get("incident")
+        if incident_id:
+            queryset = queryset.filter(incident_id=incident_id)
+        return queryset.select_related("incident", "user")
+
+    def get_context_data(self, **kwargs):
+        """Add incidents list and current incident to context"""
+        context = super().get_context_data(**kwargs)
+        context["incidents"] = Incident.objects.filter(status="ACTIVE").order_by("-start_date")
+
+        incident_id = self.request.GET.get("incident")
+        if incident_id:
+            try:
+                context["current_incident"] = Incident.objects.get(id=incident_id)
+            except Incident.DoesNotExist:
+                pass
+
+        return context
+
 
 @login_required()
 def index(request):
+    """Main check-in dashboard showing active incidents and recent check-ins"""
     context = {}
+
+    # Get active incidents
+    active_incidents = Incident.objects.filter(status="ACTIVE").order_by("-start_date")
+    context["active_incidents"] = active_incidents
+
+    # Get recent check-ins across all active incidents
+    recent_checkins = (
+        CheckIn.objects.filter(incident__status="ACTIVE")
+        .select_related("incident", "user")
+        .order_by("-timestamp")[:10]
+    )
+    context["recent_checkins"] = recent_checkins
+
+    # Get stats for active incidents
+    incident_stats = []
+    for incident in active_incidents:
+        stats = {
+            "incident": incident,
+            "total_checkins": incident.total_checkins,
+            "active_checkins": incident.active_checkins,
+        }
+        incident_stats.append(stats)
+    context["incident_stats"] = incident_stats
 
     return render(request, "operations/checkin/home.html", context)
 
 
 @login_required()
-def new(request):
+def new(request, incident_id):
+    """Create a new check-in for a specific incident"""
     context = {}
-    context["form"] = CheckInForm()
+
+    # Get the specific incident
+    incident = get_object_or_404(Incident, id=incident_id, status="ACTIVE")
+    context["incident"] = incident
+
+    # Pass incident to form constructor
+    context["form"] = CheckInForm(incident=incident)
 
     if request.method == "POST":
-        details = CheckInForm(request.POST)
+        details = CheckInForm(request.POST, incident=incident)
         if details.is_valid():
-            _process_valid_checkin_form(details)
-            return render(request, "operations/checkin/new.html", context)
+            checkin = _process_valid_checkin_form(details, incident)
+            messages.success(
+                request,
+                f"Check-in successful for {checkin.first_name} {checkin.last_name} "
+                f"into {incident.name}",
+            )
+            return redirect("operations:checkin_index")
         else:
             context["form"] = details  # Pass the form with errors back to the template
 
     return render(request, "operations/checkin/new.html", context)
 
 
-def _process_valid_checkin_form(details):
+def _process_valid_checkin_form(details, incident):
     """Process valid check-in form data"""
     checkin = details.save(commit=False)
+
+    # Set the incident for this check-in
+    checkin.incident = incident
 
     id_card_results = decode_aamva_fields(
         [x for x in details.cleaned_data["dl_data"].splitlines() if x != ""]
@@ -73,7 +134,9 @@ def _process_valid_checkin_form(details):
 
     _set_checkin_names(checkin, dl_first_name, dl_last_name)
 
-    logger.warning("Here")
+    logger.info(
+        f"Processing check-in for {checkin.first_name} {checkin.last_name} into incident {checkin.incident.name}"
+    )
     checkin.save()
     return checkin
 
@@ -114,7 +177,7 @@ def checkout(request, pk):
 
         messages.success(
             request,
-            f"{checkin.first_name} {checkin.last_name} has been checked out successfully.",
+            f"{checkin.first_name} {checkin.last_name} has been checked out of {checkin.incident.name} successfully.",
         )
 
     # Redirect back to the report page

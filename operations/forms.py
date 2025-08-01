@@ -29,11 +29,15 @@ class CheckInForm(ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        # Extract incident from kwargs if provided
+        self.incident = kwargs.pop("incident", None)
         super().__init__(*args, **kwargs)
+
         # Order users by first name, last name for better UX
         self.fields["user"].queryset = User.objects.all().order_by(
             "first_name", "last_name", "username"
         )
+
         # Custom display for users showing full name if available
         self.fields["user"].label_from_instance = self.user_label_from_instance
 
