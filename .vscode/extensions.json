@@ -3,6 +3,7 @@
     "mtxr.sqltools",
     "charliermarsh.ruff",
     "visualstudioexptteam.vscodeintellicode",
-    "monosans.djlint"
+    "monosans.djlint",
+    "elagil.pre-commit-helper"
   ]
 }
