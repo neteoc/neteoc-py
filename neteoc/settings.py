@@ -27,6 +27,28 @@ def setup_loguru(logger, settings_dict):
         logger.add("netoc.log", rotation="10 MB")
 
 
+if DEBUG:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+            },
+        },
+        "loggers": {
+            "allauth": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+            },
+            "allauth.socialaccount": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+            },
+        },
+    }
+
+
 load_loguru(globals(), configure_func=setup_loguru)
 
 
@@ -66,6 +88,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth_ui",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.saml",
+    "widget_tweaks",
+    "slippers",
     "django_bootstrap5",
     "maintenance_mode",
     "wagtail.contrib.forms",
@@ -88,6 +118,12 @@ INSTALLED_APPS = [
     "checkin",
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+SITE_ID = 1
+
 
 # if DEBUG:
 # Add django_browser_reload only in DEBUG mode
@@ -102,6 +138,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
@@ -215,3 +252,17 @@ WAGTAILDOCS_EXTENSIONS = [
     "xlsx",
     "zip",
 ]
+
+
+# SAML/Allauth specific settings
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Disable email verification for SAML users
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+
+SOCIALACCOUNT_ADAPTER = "home.provider.SocialAccountAdapter"
+LOGIN_URL = "/accounts/login/"
+WAGTAILADMIN_LOGIN_URL = "/accounts/login/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/accounts/"
+ALLAUTH_UI_THEME = "light"

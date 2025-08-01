@@ -1,0 +1,18 @@
+{
+  "attribute_mapping": {
+    "uid": "http://schemas.goauthentik.io/2021/02/saml/ui",
+    "email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+    "username": "http://schemas.goauthentik.io/2021/02/saml/username"
+  },
+  "idp": {
+    "entity_id": "authentik",
+    "metadata_url": "https://auth.hatchertechnology.com/application/saml/net-eoc/metadata/"
+    },
+  "advanced": {
+    "name_id_format": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+    "reject_idp_initiated_sso": "False",
+    "want_name_id": "True",
+    "metadata_valid_until": "None",
+    "metadata_cache_duration": "None"
+  }
+}

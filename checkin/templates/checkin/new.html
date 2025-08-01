@@ -24,6 +24,36 @@
 
 </form>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userSelect = document.querySelector('#id_user');
 
+    if (userSelect) {
+        // Add a help message
+        const helpDiv = document.createElement('div');
+        helpDiv.className = 'form-text text-muted mt-2';
+        helpDiv.innerHTML = '<i class="fa fa-info-circle"></i> <strong>Tip:</strong> If the person being checked in has a user account, select them above. Otherwise, leave blank and their name will be filled from the driver\'s license data.';
+        userSelect.parentNode.appendChild(helpDiv);
+
+        // Optional: Add change event to show selected user info
+        userSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const existingInfo = document.querySelector('#user-selection-info');
+
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+
+            if (this.value && selectedOption.text !== '-- No user account (manual entry) --') {
+                const infoDiv = document.createElement('div');
+                infoDiv.id = 'user-selection-info';
+                infoDiv.className = 'alert alert-info mt-2';
+                infoDiv.innerHTML = `<i class="fa fa-user"></i> <strong>Selected:</strong> ${selectedOption.text}`;
+                this.parentNode.appendChild(infoDiv);
+            }
+        });
+    }
+});
+</script>
 
 {% endblock content %}

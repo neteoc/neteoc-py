@@ -26,6 +26,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 
 urlpatterns = [
+    path("accounts/", include("allauth.urls")),
     path("checkin/", include("checkin.urls")),
     path("admin/", admin.site.urls),
     path("cms/", include(wagtailadmin_urls)),

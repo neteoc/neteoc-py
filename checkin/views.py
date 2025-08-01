@@ -36,14 +36,14 @@ class report(SingleTableView):
     template_name = "checkin/report.html"
 
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def index(request):
     context = {}
 
     return render(request, "checkin/home.html", context)
 
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def new(request):
     context = {}
     context["form"] = CheckInForm()
@@ -58,16 +58,22 @@ def new(request):
                 [x for x in details.cleaned_data["dl_data"].splitlines() if x != ""]
             )
 
-            # for item in id_card_results['body']:
-            #     if item['key'] == 'DAC':
+            # Get names from driver's license
+            dl_first_name = id_card_results["body"].get("DAC", {}).get("value", "")
+            dl_last_name = id_card_results["body"].get("DCS", {}).get("value", "")
 
-            #         checkin.first_name = item['value']
-
-            #     if item['key'] == 'DCS':
-            #         checkin.last_name = item['value']
-
-            checkin.first_name = id_card_results["body"].get("DAC", {}).get("value", "")
-            checkin.last_name = id_card_results["body"].get("DCS", {}).get("value", "")
+            # If no user is selected, use names from driver's license
+            # If user is selected, keep the names that may have been auto-populated from user
+            if not checkin.user:
+                checkin.first_name = dl_first_name
+                checkin.last_name = dl_last_name
+            else:
+                # User is selected - keep the names from form (may be auto-populated from user)
+                # But if form names are empty, fall back to driver's license names
+                if not checkin.first_name:
+                    checkin.first_name = dl_first_name or checkin.user.first_name
+                if not checkin.last_name:
+                    checkin.last_name = dl_last_name or checkin.user.last_name
 
             logger.warning("Here")
             checkin.save()
@@ -79,7 +85,7 @@ def new(request):
     return render(request, "checkin/new.html", context)
 
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def checkout(request, pk):
     """
     Handle checkout functionality for a specific CheckIn record.

@@ -6,17 +6,20 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "dj-database-url>=3.0.1",
-    "django-allauth[socialaccount]>=65.10.0",
+    "django-allauth-ui>=1.8.1",
+    "django-allauth[saml,socialaccount]>=65.10.0",
     "django-bootstrap5>=25.2",
     "django-easy-logging>=0.70",
     "django-maintenance-mode>=0.22.0",
     "django-tables2>=2.7.5",
     "django-tiles-gl>=0.3.9",
+    "django-widget-tweaks>=1.5.0",
     "django>=5.2.4",
     "geopy>=2.4.1",
     "gunicorn>=23.0.0",
     "psycopg[binary]>=3.2.9",
     "python-decouple>=3.8",
+    "slippers>=0.6.2",
     "wagtail>=7.0.2",
     "whitenoise>=6.9.0",
 ]

@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import ModelForm
+from django.contrib.auth.models import User
 from .models import CheckIn
 from logging import getLogger
 import re
@@ -8,6 +9,13 @@ logger = getLogger(__name__)
 
 
 class CheckInForm(ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        empty_label="-- No user account (manual entry) --",
+        help_text="Select a user account if the person being checked in has one",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
     dl_data = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 5, "cols": 40}),
         label="Driver's License Data",
@@ -15,15 +23,35 @@ class CheckInForm(ModelForm):
     )
     expense_notes = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 3, "cols": 40}),
-        # label="Expense Notes2",
         initial="n/a",
         required=True,
         help_text="Explain any large expenses or unusual mileage.",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Order users by first name, last name for better UX
+        self.fields["user"].queryset = User.objects.all().order_by(
+            "first_name", "last_name", "username"
+        )
+        # Custom display for users showing full name if available
+        self.fields["user"].label_from_instance = self.user_label_from_instance
+
+    def user_label_from_instance(self, user):
+        """Show user's full name and username for better identification"""
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name} ({user.username})"
+        elif user.first_name:
+            return f"{user.first_name} ({user.username})"
+        elif user.last_name:
+            return f"{user.last_name} ({user.username})"
+        else:
+            return user.username
+
     class Meta:
         model = CheckIn
         fields = [
+            "user",
             "roster_id",
             "mileage",
             "food_expenses",
@@ -36,6 +64,19 @@ class CheckInForm(ModelForm):
         super(CheckInForm, self).clean()
         logger.warning("Cleaning checkin form data")
         logger.warning(f"Cleaned data: {self.cleaned_data}")
+
+        # If a user is selected, we could optionally auto-populate name fields
+        selected_user = self.cleaned_data.get("user")
+        if (
+            selected_user
+            and not self.cleaned_data.get("first_name")
+            and not self.cleaned_data.get("last_name")
+        ):
+            # Auto-populate from user if names aren't already set
+            if selected_user.first_name:
+                self.cleaned_data["first_name"] = selected_user.first_name
+            if selected_user.last_name:
+                self.cleaned_data["last_name"] = selected_user.last_name
 
         if self.cleaned_data.get("mileage", 0) < 0:
             self.add_error("mileage", "Mileage cannot be negative")
