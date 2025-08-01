@@ -11,7 +11,6 @@ check:
 lint:
     uv run ruff check --fix --exit-zero
     uv run ruff format
-    uv run black .
 
 serve:
     uv run python manage.py makemigrations
