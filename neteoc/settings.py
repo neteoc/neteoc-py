@@ -116,7 +116,8 @@ INSTALLED_APPS = [
     "taggit",
     "theme",
     "home",
-    "checkin",
+    "operations",
+    "user_profile",
 ]
 
 AUTHENTICATION_BACKENDS = [

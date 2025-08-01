@@ -2,6 +2,10 @@
 
 This is a web application used in disaster response for tracking people, stuff, and needs.
 
+A user is a person. A person might not be a user. A person may be a responder or a civilian or both in any given incident.
+
+An incident is a specific occurrence of a disaster or community event. Like a hurricane, flood, or community festival.
+
 ## Python Instructions
 
 The UV tool should be used to manage python.
