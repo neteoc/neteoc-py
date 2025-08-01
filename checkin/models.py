@@ -1,7 +1,49 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
+
+
+class UserProfile(models.Model):
+    """
+    Extended user profile to store roster ID and other user-specific preferences
+    """
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="checkin_profile")
+    roster_id = models.CharField(
+        max_length=7, blank=True, null=True, help_text="Your default roster ID (e.g., DOE1234)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.roster_id or 'No Roster ID'}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """
+    Automatically create a UserProfile when a User is created
+    """
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """
+    Automatically save the UserProfile when a User is saved
+    """
+    if hasattr(instance, "checkin_profile"):
+        instance.checkin_profile.save()
+    else:
+        UserProfile.objects.create(user=instance)
 
 
 class CheckIn(models.Model):

@@ -1,11 +1,35 @@
 from django import forms
 from django.forms import ModelForm
 from django.contrib.auth.models import User
-from .models import CheckIn
+from .models import CheckIn, UserProfile
 from logging import getLogger
 import re
 
 logger = getLogger(__name__)
+
+
+class UserProfileForm(ModelForm):
+    """
+    Form for users to manage their profile information including roster ID
+    """
+
+    class Meta:
+        model = UserProfile
+        fields = ["roster_id"]
+        widgets = {
+            "roster_id": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "DOE1234", "maxlength": 7}
+            )
+        }
+
+    def clean_roster_id(self):
+        """Validate roster ID format"""
+        roster_id = self.cleaned_data.get("roster_id", "").upper()
+        if roster_id and not re.match(r"^[A-Za-z]{3}\d{4}$", roster_id):
+            raise forms.ValidationError(
+                "Roster ID must be 3 letters followed by 4 digits (e.g., ABC1234)"
+            )
+        return roster_id
 
 
 class CheckInForm(ModelForm):
@@ -65,18 +89,24 @@ class CheckInForm(ModelForm):
         logger.warning("Cleaning checkin form data")
         logger.warning(f"Cleaned data: {self.cleaned_data}")
 
-        # If a user is selected, we could optionally auto-populate name fields
+        # If a user is selected, auto-populate data from their profile
         selected_user = self.cleaned_data.get("user")
-        if (
-            selected_user
-            and not self.cleaned_data.get("first_name")
-            and not self.cleaned_data.get("last_name")
-        ):
-            # Auto-populate from user if names aren't already set
-            if selected_user.first_name:
-                self.cleaned_data["first_name"] = selected_user.first_name
-            if selected_user.last_name:
-                self.cleaned_data["last_name"] = selected_user.last_name
+        if selected_user:
+            # Auto-populate roster ID if not provided and user has one saved
+            if not self.cleaned_data.get("roster_id") and hasattr(selected_user, "checkin_profile"):
+                profile = selected_user.checkin_profile
+                if profile.roster_id:
+                    self.cleaned_data["roster_id"] = profile.roster_id
+                    logger.info(
+                        f"Auto-populated roster ID {profile.roster_id} for user {selected_user.username}"
+                    )
+
+            # Auto-populate names if not already set
+            if not self.cleaned_data.get("first_name") and not self.cleaned_data.get("last_name"):
+                if selected_user.first_name:
+                    self.cleaned_data["first_name"] = selected_user.first_name
+                if selected_user.last_name:
+                    self.cleaned_data["last_name"] = selected_user.last_name
 
         if self.cleaned_data.get("mileage", 0) < 0:
             self.add_error("mileage", "Mileage cannot be negative")

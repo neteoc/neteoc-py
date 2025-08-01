@@ -18,5 +18,6 @@ urlpatterns = [
         login_required(views.checkout),
         name="checkout",
     ),
+    path("profile/", views.profile, name="profile"),
     path("", views.index, name="index"),
 ]

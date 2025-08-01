@@ -8,16 +8,16 @@
 {% block content %}
 
 <div class="clearfix">
-         {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="/checkin/" %}
-    </div>
+    {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="/checkin/" %}
+</div>
 
 
-<form action = "" method = "post">
+<form action="" method="post">
     {% csrf_token %}
     {% bootstrap_form form %}
     <div class="clearfix">
-         {% bootstrap_button button_type="submit" content="Submit" button_class="btn-primary float-start" %}
-         {% bootstrap_button button_type="reset" content="Clear" button_class="btn-danger float-end" %}
+        {% bootstrap_button button_type="submit" content="Submit" button_class="btn-primary float-start" %}
+        {% bootstrap_button button_type="reset" content="Clear" button_class="btn-danger float-end" %}
     </div>
 
     {% bootstrap_form_errors form %}
@@ -25,35 +25,45 @@
 </form>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const userSelect = document.querySelector('#id_user');
+    document.addEventListener('DOMContentLoaded', function () {
+        const userSelect = document.querySelector('#id_user');
+        const rosterIdField = document.querySelector('#id_roster_id');
 
-    if (userSelect) {
-        // Add a help message
-        const helpDiv = document.createElement('div');
-        helpDiv.className = 'form-text text-muted mt-2';
-        helpDiv.innerHTML = '<i class="fa fa-info-circle"></i> <strong>Tip:</strong> If the person being checked in has a user account, select them above. Otherwise, leave blank and their name will be filled from the driver\'s license data.';
-        userSelect.parentNode.appendChild(helpDiv);
+        if (userSelect) {
+            // Add a help message
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'form-text text-muted mt-2';
+            helpDiv.innerHTML = '<i class="fa fa-info-circle"></i> <strong>Tip:</strong> If the person being checked in has a user account, select them above. Their saved roster ID will be auto-filled if available.';
+            userSelect.parentNode.appendChild(helpDiv);
 
-        // Optional: Add change event to show selected user info
-        userSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const existingInfo = document.querySelector('#user-selection-info');
+            // Optional: Add change event to show selected user info
+            userSelect.addEventListener('change', function () {
+                const selectedOption = this.options[this.selectedIndex];
+                const existingInfo = document.querySelector('#user-selection-info');
 
-            if (existingInfo) {
-                existingInfo.remove();
-            }
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
 
-            if (this.value && selectedOption.text !== '-- No user account (manual entry) --') {
-                const infoDiv = document.createElement('div');
-                infoDiv.id = 'user-selection-info';
-                infoDiv.className = 'alert alert-info mt-2';
-                infoDiv.innerHTML = `<i class="fa fa-user"></i> <strong>Selected:</strong> ${selectedOption.text}`;
-                this.parentNode.appendChild(infoDiv);
-            }
-        });
-    }
-});
-</script>
+                if (this.value && selectedOption.text !== '-- No user account (manual entry) --') {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.id = 'user-selection-info';
+                    infoDiv.className = 'alert alert-success mt-2';
+                    infoDiv.innerHTML = `
+                    <i class="fa fa-user"></i> <strong>Selected:</strong> ${selectedOption.text}<br>
+                    <small><i class="fa fa-magic"></i> Name and roster ID will be auto-populated when form is submitted.</small>
+                `;
+                    this.parentNode.appendChild(infoDiv);
+                }
+            });
+        }
 
-{% endblock content %}
+        // Add helpful information about roster ID field
+        if (rosterIdField) {
+            const rosterHelpDiv = document.createElement('div');
+            rosterHelpDiv.className = 'form-text text-muted mt-1';
+            rosterHelpDiv.innerHTML = '<i class="fa fa-save"></i> <a href="/checkin/profile/">Save your roster ID in your profile</a> to auto-fill this field.';
+            rosterIdField.parentNode.appendChild(rosterHelpDiv);
+        }
+    });
+</script>{% endblock content %}

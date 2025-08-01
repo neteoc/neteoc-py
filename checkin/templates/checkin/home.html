@@ -7,10 +7,10 @@
 
 {% block content %}
 
-    <div class="clearfix">
-         {% bootstrap_button button_type="link" content="Add" button_class="btn-primary" extra_classes="float-start" href="/checkin/new/" %}
-         {% bootstrap_button button_type="link" content="Report" button_class="btn-danger" extra_classes="float-end" href="/checkin/report/" %}
-    </div>
-
+<div class="clearfix">
+    {% bootstrap_button button_type="link" content="Add" button_class="btn-primary" extra_classes="float-start" href="/checkin/new/" %}
+    {% bootstrap_button button_type="link" content="My Profile" button_class="btn-info" extra_classes="float-start ms-2" href="/checkin/profile/" %}
+    {% bootstrap_button button_type="link" content="Report" button_class="btn-danger" extra_classes="float-end" href="/checkin/report/" %}
+</div>
 
 {% endblock content %}

@@ -5,8 +5,8 @@ from django.contrib import messages
 
 from .lib.aamva import aamva_2020
 import typing
-from .forms import CheckInForm
-from .models import CheckIn
+from .forms import CheckInForm, UserProfileForm
+from .models import CheckIn, UserProfile
 from .tables import CheckInTable
 
 from logging import getLogger
@@ -112,3 +112,27 @@ def checkout(request, pk):
 
     # Redirect back to the report page
     return redirect("checkin:report")
+
+
+@login_required()
+def profile(request):
+    """
+    Allow users to manage their profile including roster ID
+    """
+    # Get or create the user's profile
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == "POST":
+        form = UserProfileForm(request.POST, instance=user_profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your profile has been updated successfully!")
+            return redirect("checkin:profile")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = UserProfileForm(instance=user_profile)
+
+    context = {"form": form, "user_profile": user_profile, "created": created}
+
+    return render(request, "checkin/profile.html", context)
