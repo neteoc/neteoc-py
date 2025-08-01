@@ -128,8 +128,14 @@
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="public_profile">
                         {% bootstrap_form public_profile_form %}
-                        <div class="clearfix">
-                            {% bootstrap_button button_type="submit" content="Save Public Info" button_class="btn-outline-primary float-start" %}
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>{% bootstrap_button button_type="submit" content="Save Public Info" button_class="btn-outline-primary" %}</div>
+                            <div>
+                                <a href="{% url 'user_profile:public_profile_view' user_id=user.id %}"
+                                   class="btn btn-outline-info">
+                                    <i class="fa fa-eye me-1"></i>View My Public Profile
+                                </a>
+                            </div>
                         </div>
                         {% bootstrap_form_errors public_profile_form %}
                     </form>

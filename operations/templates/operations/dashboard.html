@@ -125,7 +125,11 @@
                                             {% endif %}
                                             {% if stats.incident.owner %}
                                                 <br>
-                                                <i class="fa fa-user me-1"></i>Owner: {{ stats.incident.owner.get_full_name|default:stats.incident.owner.username }}
+                                                <i class="fa fa-user me-1"></i>Owner:
+                                                <a href="{% url 'user_profile:public_profile_view' user_id=stats.incident.owner.id %}"
+                                                   class="text-decoration-none">
+                                                    {{ stats.incident.owner.get_full_name|default:stats.incident.owner.username }}
+                                                </a>
                                             {% endif %}
                                             {% if stats.incident.organization %}
                                                 <br>

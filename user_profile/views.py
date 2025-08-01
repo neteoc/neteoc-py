@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -153,34 +154,42 @@ def view_public_profile(request, user_id):
     # Get target user and profile
     try:
         target_user = User.objects.get(id=user_id)
-        target_profile = target_user.profile
-    except (User.DoesNotExist, UserProfile.DoesNotExist):
+    except User.DoesNotExist:
         raise Http404("User not found")
+    target_profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
     # Access control: must share org or be checked in to incident where target is commander
+    # OR be viewing your own profile
     allowed = False
-    if IncidentOrganizationUser:
-        # Shared org
-        my_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
-            "organization", flat=True
-        )
-        target_orgs = IncidentOrganizationUser.objects.filter(user=target_user).values_list(
-            "organization", flat=True
-        )
-        if set(my_orgs) & set(target_orgs):
-            allowed = True
-    # Incident commander check
-    try:
-        from operations.models import CheckIn
 
-        is_checked_in = CheckIn.objects.filter(
-            user=request.user, incident__incident_commander=target_user, Check_Out=False
-        ).exists()
-        if is_checked_in:
-            allowed = True
-    except Exception:
-        pass
-    if not allowed or not target_profile.public_visible:
+    # Allow users to view their own public profile
+    if request.user == target_user:
+        allowed = True
+    else:
+        if IncidentOrganizationUser:
+            # Shared org
+            my_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+                "organization", flat=True
+            )
+            target_orgs = IncidentOrganizationUser.objects.filter(user=target_user).values_list(
+                "organization", flat=True
+            )
+            if set(my_orgs) & set(target_orgs):
+                allowed = True
+        # Incident commander check
+        try:
+            from operations.models import CheckIn
+
+            is_checked_in = CheckIn.objects.filter(
+                user=request.user, incident__incident_commander=target_user, Check_Out=False
+            ).exists()
+            if is_checked_in:
+                allowed = True
+        except Exception:
+            pass
+
+    # For other users, also check if the profile is set to be publicly visible
+    if not allowed or (request.user != target_user and not target_profile.public_visible):
         raise Http404("Not authorized to view this public profile.")
     return render(
         request,
