@@ -14,6 +14,13 @@ Each incident should also have a user that is the incident commander. This user 
 
 It is important to keep track of who has checked in and out of an incident. This is for insurance and safety purposes. The system should allow users to check in and out of incidents, and the incident owner should be able to view all check-ins for that incident. The incident owner and incident commander should also be able to delete/update check-ins if necessary.
 
+## Example use case
+
+The local emergency management agency (EMA) is dealing with a hurricane. The first step would be for the EMA to create an incident for that hurricane. They would fill out a form with the incident name, type, status, start date, and any other relevant information. The EMA would then assign an incident commander who would be responsible for managing the incident on behalf of the EMA. The incident commander would then be able to manage the incident, including assigning check-ins to responders and civilians.
+
+The EMA needs to request support from another organization, such as the state defense force (SDF). They would visit the SDF's public profile page and request support. The SDF would then create an incident based on that request for support for that hurricane and assign an incident commander. The incident commander would then be able to manage the incident, including assigning check-ins to soldiers. Those two incidents would be linked together so that the EMA can see the SDF's incident and the SDF can see the EMA's incident. This way each organization maintains control over their own incidents and can link them with other organization's incidents for better tracking.
+
+
 ## Project Infrastructure
 
 The application is packaged as a Docker container and can be run using Podman.
