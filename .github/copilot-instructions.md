@@ -6,6 +6,10 @@ A user is a person. A person might not be a user. A person may be a responder or
 
 An incident is a specific occurrence of a disaster or community event. Like a hurricane, flood, or community festival.
 
+## Security
+
+All endpoints other than the wagtail managed public pages should be protected by the `@login_required` decorator.
+
 ## Python Instructions
 
 The UV tool should be used to manage python.
@@ -27,18 +31,19 @@ Geographic functions and data should make use of GeoDjango: https://docs.djangop
 
 Code should be checked and formated with the tool `ruff` after any changes. There is a shortcut command in the justfile that can be used for this: `just lint`.
 
-
 ## HTML Template instructions
 
 Do not break code into multiple lines, this breaks the rendering.
 
 Wrong:
+
 ```
    {% bootstrap_button button_type="link" content="Add" button_class="btn-primary" extra_classes="float-start"
     href="/checkin/new/" %}
 ```
 
 Correct:
+
 ```
    {% bootstrap_button button_type="link" content="Add" button_class="btn-primary" extra_classes="float-start" href="/checkin/new/" %}
 ```
