@@ -90,7 +90,7 @@
                             <div class="col-md-12">
                                 <h6><strong>Total Costs</strong></h6>
                                 <p class="h5 text-primary">
-                                    ${% widthratio time_entry.travel_meal_costs|add:time_entry.billeting_costs|add:time_entry.purchases 1 100 %}
+                                    ${{ time_entry.travel_meal_costs|add:time_entry.billeting_costs|add:time_entry.purchases|floatformat:2 }}
                                 </p>
                             </div>
                         </div>
