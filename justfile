@@ -5,8 +5,8 @@ migrate:
     uv run python manage.py maintenance_mode off
 
 check:
-    pre-commit run --all-files
-    pre-commit install
+    uv run pre-commit run --all-files
+    uv run pre-commit install
 
 lint:
     uv run ruff check --fix --exit-zero

@@ -122,6 +122,7 @@ djangorestframework==3.16.0
     #   neteoc-py
     #   wagtail
 djlint==1.36.4
+    # via neteoc-py
 draftjs-exporter==5.1.0
     # via wagtail
 editorconfig==0.17.1
