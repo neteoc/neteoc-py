@@ -86,46 +86,18 @@
                                 <div class="row">
                                     <div class="col-md-3">
                                         <strong>Total Work Hours:</strong><br>
-                                        {% widthratio time_entries|length 0 0 as total_work_hours %}
-                                        {% for entry in time_entries %}
-                                            {% if entry.work_hours %}
-                                                {% widthratio total_work_hours 1 1 as temp %}
-                                                {% widthratio entry.work_hours|add:temp 1 1 as total_work_hours %}
-                                            {% endif %}
-                                        {% endfor %}
                                         {{ total_work_hours|default:"0" }}
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Total Volunteer Hours:</strong><br>
-                                        {% widthratio time_entries|length 0 0 as total_volunteer_hours %}
-                                        {% for entry in time_entries %}
-                                            {% if entry.volunteer_hours %}
-                                                {% widthratio total_volunteer_hours 1 1 as temp %}
-                                                {% widthratio entry.volunteer_hours|add:temp 1 1 as total_volunteer_hours %}
-                                            {% endif %}
-                                        {% endfor %}
                                         {{ total_volunteer_hours|default:"0" }}
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Total Travel Hours:</strong><br>
-                                        {% widthratio time_entries|length 0 0 as total_travel_hours %}
-                                        {% for entry in time_entries %}
-                                            {% if entry.travel_hours %}
-                                                {% widthratio total_travel_hours 1 1 as temp %}
-                                                {% widthratio entry.travel_hours|add:temp 1 1 as total_travel_hours %}
-                                            {% endif %}
-                                        {% endfor %}
                                         {{ total_travel_hours|default:"0" }}
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Total Miles:</strong><br>
-                                        {% widthratio time_entries|length 0 0 as total_miles %}
-                                        {% for entry in time_entries %}
-                                            {% if entry.travel_miles %}
-                                                {% widthratio total_miles 1 1 as temp %}
-                                                {% widthratio entry.travel_miles|add:temp 1 1 as total_miles %}
-                                            {% endif %}
-                                        {% endfor %}
                                         {{ total_miles|default:"0" }}
                                     </div>
                                 </div>
