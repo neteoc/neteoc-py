@@ -61,6 +61,28 @@ Assets should be able to be checked in and out by users. When an asset is checke
 
 An asset checkout/checkin should be a two step process where the current holder of the asset checks it out to the new holder which puts the asset in a pending state. The new holder then checks the asset in which completes the checkout process. This allows for better tracking of assets and ensures that assets are not lost or mismanaged.
 
+## Time Tracking
+
+The time tracking system should allow users to log their time spent on work for an organization. 
+
+This should be a daily log of time spend on work for an organization.
+
+The data collected should include:
+
+- Date: The date the work was done
+- ACTIVITY DESCRIPTION
+- Work Hours
+- Volunteer hours
+- Travel Hours
+- Travel Miles
+- Travel Meal Costs
+- Billeting Costs
+- Purchases
+- Explain Purchase and Reason
+
+The spreadsheet based system that this is replacing has an example file in the 'docs' directory named `time_example_2025.ods`. This file should be used as a reference for the data that needs to be collected.
+
+
 ## Support Request Workflow
 
 The support request workflow allows organizations to request support from other organizations for incidents. This is useful for coordinating disaster response efforts between different organizations. A user should be able to create a draft request and save it for later, or submit it immediately.

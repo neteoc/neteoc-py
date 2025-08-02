@@ -12,6 +12,7 @@ This directory contains comprehensive documentation for the NetEOC disaster resp
 
 - [Incident Creation System](incident-creation-system.md) - Documentation for creating and managing incidents
 - [Incident Ownership and Access Control](incident-ownership-and-access-control.md) - Access control and permission systems for incidents
+- [Time Tracking System Access Guide](time-tracking-access-guide.md) - Complete guide for using the time tracking system
 
 ### Implementation Guides
 
