@@ -14,6 +14,8 @@ Each incident should also have a user that is the incident commander. This user 
 
 It is important to keep track of who has checked in and out of an incident. This is for insurance and safety purposes. The system should allow users to check in and out of incidents, and the incident owner should be able to view all check-ins for that incident. The incident owner and incident commander should also be able to delete/update check-ins if necessary.
 
+The National Incident Management System (NIMS) and the Incident Command System (ICS) are used to manage incidents. The system should allow for the creation of incidents, the assignment of incident commanders, and the management of incidents by those commanders.
+
 ## Example use case
 
 The local emergency management agency (EMA) is dealing with a hurricane. The first step would be for the EMA to create an incident for that hurricane. They would fill out a form with the incident name, type, status, start date, and any other relevant information. The EMA would then assign an incident commander who would be responsible for managing the incident on behalf of the EMA. The incident commander would then be able to manage the incident, including assigning check-ins to responders and civilians.
@@ -50,6 +52,14 @@ Users should be able to see other incidents they or their organizations are invo
 The user should be able to request support from an org they are also a member of. In a disaster a Liaison Officer (LNO) could be assigned before any formal requests are made. That LNO may be the user that fills out the request on behalf of the agency they are assigned temporarily to.
 
 The only limit on what org can be a target is that it can't be the same one that is requesting.
+
+## Asset Management
+
+The asset management system should allow organizations to track their assets such as radios, laptops, vehicles, etc. Each asset should have a unique identifier, a name, a description, and a status (available, in use, under maintenance, etc.). There should be categories for assets that have special data requirements, such as vehicles or radios.
+
+Assets should be able to be checked in and out by users. When an asset is checked out, the user should be able to specify the incident it is being checked out for. The asset should then be associated with that incident until it is checked back in.
+
+An asset checkout/checkin should be a two step process where the current holder of the asset checks it out to the new holder which puts the asset in a pending state. The new holder then checks the asset in which completes the checkout process. This allows for better tracking of assets and ensures that assets are not lost or mismanaged.
 
 ## Support Request Workflow
 
