@@ -79,9 +79,12 @@ The data collected should include:
 - Billeting Costs
 - Purchases
 - Explain Purchase and Reason
+- User: The user who logged the time
+- Organization: The organization the time is logged for
 
 The spreadsheet based system that this is replacing has an example file in the 'docs' directory named `time_example_2025.ods`. This file should be used as a reference for the data that needs to be collected.
 
+tT he data shown should be for the indivuial user and should be filtered by the user's current organization context. The user should only be able to see their own time entries, but the organization owner or incident commander should be able to see all time entries for the organization or incident.
 
 ## Support Request Workflow
 
