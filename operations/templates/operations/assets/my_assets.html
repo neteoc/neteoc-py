@@ -44,7 +44,7 @@
                                                     </p>
                                                 {% endif %}
                                                 <div class="d-flex gap-2">
-                                                    {% bootstrap_button button_type="link" content="Accept" button_class="btn-success btn-sm" href="/operations/assets/checkout/{{ checkout.id }}/accept/" %}
+                                                    {% bootstrap_button button_type="link" content="Accept" button_class="btn-success btn-sm" href="{% url 'operations:asset_accept_checkout' checkout.id %}" %}
                                                     {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="/operations/assets/checkout/{{ checkout.id }}/cancel/" %}
                                                 </div>
                                             </div>
