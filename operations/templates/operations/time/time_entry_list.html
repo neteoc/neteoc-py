@@ -9,7 +9,7 @@
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1>Time Tracking</h1>
-                <a href="/operations/time/new/" class="btn btn-primary">New Time Entry</a>
+                <a href="{% url 'operations:time_entry_create' %}" class="btn btn-primary">New Time Entry</a>
             </div>
 
             {% if not time_entries %}
