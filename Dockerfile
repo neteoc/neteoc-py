@@ -1,6 +1,6 @@
 # Build arguments
 ARG DEBIAN_VERSION=bookworm
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.12
 ARG UV_VERSION=latest
 
 FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv

@@ -1,7 +1,7 @@
 services:
   neteoc-web:
-    image: neteoc/web:latest
-    container_name: neteoc-web
+    image: ghcr.io/neteoc/neteoc-py:main
+    container_name: neteoc-py
     ports:
       - "8123:8000"
     environment:
