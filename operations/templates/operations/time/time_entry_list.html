@@ -57,7 +57,7 @@
                                     <td>{{ entry.travel_miles|default:"—" }}</td>
                                     <td>
                                         {% if entry.travel_meal_costs or entry.billeting_costs or entry.purchases %}
-                                            ${% widthratio entry.travel_meal_costs|add:entry.billeting_costs|add:entry.purchases 1 100 %}
+                                            ${{ entry.travel_meal_costs|add:entry.billeting_costs|add:entry.purchases|floatformat:2 }}
                                         {% else %}
                                             —
                                         {% endif %}
