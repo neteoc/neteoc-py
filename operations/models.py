@@ -920,3 +920,107 @@ class AssetCheckout(models.Model):
 
         self.status = "CANCELLED"
         self.save()
+
+
+class TimeEntry(models.Model):
+    """
+    Time tracking entry for users working for organizations.
+    Daily log of time spent on work for an organization.
+    """
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User who performed the work"
+    )
+    organization = models.ForeignKey(
+        IncidentOrganization,
+        on_delete=models.CASCADE,
+        help_text="Organization the work was performed for"
+    )
+    incident = models.ForeignKey(
+        Incident,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Incident the work was related to (if applicable)"
+    )
+    date = models.DateField(
+        help_text="Date the work was performed"
+    )
+    activity_description = models.TextField(
+        help_text="Description of the work performed"
+    )
+    
+    # Time tracking fields
+    work_hours = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0,
+        help_text="Hours spent on work activities"
+    )
+    volunteer_hours = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0,
+        help_text="Hours spent on volunteer activities"
+    )
+    travel_hours = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0,
+        help_text="Hours spent traveling"
+    )
+    travel_miles = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        help_text="Miles traveled"
+    )
+    
+    # Cost tracking fields
+    travel_meal_costs = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        help_text="Cost of meals during travel"
+    )
+    billeting_costs = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        help_text="Cost of lodging/billeting"
+    )
+    purchases = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        help_text="Cost of purchases made"
+    )
+    purchase_explanation = models.TextField(
+        blank=True,
+        help_text="Explanation of purchases made and reason"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = ['user', 'organization', 'date']
+        verbose_name = "Time Entry"
+        verbose_name_plural = "Time Entries"
+    
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username} - {self.organization.name} - {self.date}"
+    
+    @property
+    def total_hours(self):
+        """Calculate total hours (work + volunteer + travel)"""
+        return self.work_hours + self.volunteer_hours + self.travel_hours
+    
+    @property
+    def total_costs(self):
+        """Calculate total costs (travel meals + billeting + purchases)"""
+        return self.travel_meal_costs + self.billeting_costs + self.purchases

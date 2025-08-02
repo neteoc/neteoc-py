@@ -18,6 +18,7 @@ from .forms import (
     AssetCheckoutForm,
     AssetAcceptForm,
     AssetCheckinForm,
+    TimeEntryForm,
 )
 from .models import (
     Incident,
@@ -30,6 +31,7 @@ from .models import (
     AssetCategory,
     Asset,
     AssetCheckout,
+    TimeEntry,
 )
 from .tables import CheckInTable
 
@@ -1303,3 +1305,121 @@ def my_assets(request):
         "pending_checkouts": pending_checkouts,
     }
     return render(request, "operations/assets/my_assets.html", context)
+
+
+# ==================== Time Tracking Views ====================
+
+@login_required
+def time_entry_list(request):
+    """List time entries for the current user"""
+    current_org = get_current_organization(request)
+    if not current_org:
+        messages.error(request, "Please select an organization first.")
+        return redirect("operations:organization_list")
+    
+    # Get time entries for current user and organization
+    time_entries = TimeEntry.objects.filter(
+        user=request.user,
+        organization=current_org
+    ).select_related('incident', 'organization').order_by('-date')
+    
+    context = {
+        "time_entries": time_entries,
+        "current_organization": current_org,
+    }
+    return render(request, "operations/time/time_entry_list.html", context)
+
+
+@login_required 
+def time_entry_create(request):
+    """Create a new time entry"""
+    current_org = get_current_organization(request)
+    if not current_org:
+        messages.error(request, "Please select an organization first.")
+        return redirect("operations:organization_list")
+    
+    if request.method == "POST":
+        form = TimeEntryForm(request.POST, user=request.user)
+        if form.is_valid():
+            time_entry = form.save(commit=False)
+            time_entry.user = request.user
+            
+            # Ensure the organization is one the user belongs to
+            if time_entry.organization not in IncidentOrganization.objects.filter(users=request.user):
+                messages.error(request, "You don't have permission to log time for that organization.")
+                return redirect("operations:time_entry_list")
+            
+            time_entry.save()
+            messages.success(request, "Time entry created successfully.")
+            return redirect("operations:time_entry_detail", entry_id=time_entry.id)
+    else:
+        form = TimeEntryForm(user=request.user, initial={'organization': current_org})
+    
+    context = {
+        "form": form,
+        "current_organization": current_org,
+    }
+    return render(request, "operations/time/time_entry_form.html", context)
+
+
+@login_required
+def time_entry_detail(request, entry_id):
+    """View a specific time entry"""
+    time_entry = get_object_or_404(TimeEntry, id=entry_id)
+    
+    # Check permissions - users can only view their own time entries
+    if time_entry.user != request.user and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to view this time entry.")
+        return redirect("operations:time_entry_list")
+    
+    context = {
+        "time_entry": time_entry,
+    }
+    return render(request, "operations/time/time_entry_detail.html", context)
+
+
+@login_required
+def time_entry_edit(request, entry_id):
+    """Edit a time entry"""
+    time_entry = get_object_or_404(TimeEntry, id=entry_id)
+    
+    # Check permissions - users can only edit their own time entries
+    if time_entry.user != request.user and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to edit this time entry.")
+        return redirect("operations:time_entry_list")
+    
+    if request.method == "POST":
+        form = TimeEntryForm(request.POST, instance=time_entry, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Time entry updated successfully.")
+            return redirect("operations:time_entry_detail", entry_id=time_entry.id)
+    else:
+        form = TimeEntryForm(instance=time_entry, user=request.user)
+    
+    context = {
+        "form": form,
+        "time_entry": time_entry,
+    }
+    return render(request, "operations/time/time_entry_form.html", context)
+
+
+@login_required
+def time_entry_delete(request, entry_id):
+    """Delete a time entry"""
+    time_entry = get_object_or_404(TimeEntry, id=entry_id)
+    
+    # Check permissions - users can only delete their own time entries
+    if time_entry.user != request.user and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to delete this time entry.")
+        return redirect("operations:time_entry_list")
+    
+    if request.method == "POST":
+        time_entry.delete()
+        messages.success(request, "Time entry deleted successfully.")
+        return redirect("operations:time_entry_list")
+    
+    context = {
+        "time_entry": time_entry,
+    }
+    return render(request, "operations/time/time_entry_delete.html", context)

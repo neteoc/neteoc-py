@@ -65,4 +65,11 @@ urlpatterns = [
     path("assets/categories/", views.asset_category_list, name="asset_category_list"),
     path("assets/categories/create/", views.asset_category_create, name="asset_category_create"),
     path("assets/my/", views.my_assets, name="my_assets"),
+    
+    # Time Tracking URLs
+    path("time/", views.time_entry_list, name="time_entry_list"),
+    path("time/new/", views.time_entry_create, name="time_entry_create"),
+    path("time/<int:entry_id>/", views.time_entry_detail, name="time_entry_detail"),
+    path("time/<int:entry_id>/edit/", views.time_entry_edit, name="time_entry_edit"),
+    path("time/<int:entry_id>/delete/", views.time_entry_delete, name="time_entry_delete"),
 ]
