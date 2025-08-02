@@ -7,7 +7,18 @@ from django.utils import timezone
 
 from .lib.aamva import aamva_2020
 import typing
-from .forms import CheckInForm, IncidentForm, InviteUserForm, ManageUserRoleForm, SupportRequestForm
+from .forms import (
+    CheckInForm,
+    IncidentForm,
+    InviteUserForm,
+    ManageUserRoleForm,
+    SupportRequestForm,
+    AssetCategoryForm,
+    AssetForm,
+    AssetCheckoutForm,
+    AssetAcceptForm,
+    AssetCheckinForm,
+)
 from .models import (
     Incident,
     CheckIn,
@@ -16,6 +27,9 @@ from .models import (
     IncidentOrganizationInvitation,
     SupportRequest,
     IncidentLink,
+    AssetCategory,
+    Asset,
+    AssetCheckout,
 )
 from .tables import CheckInTable
 
@@ -54,6 +68,27 @@ def get_accessible_incidents(user, current_organization=None):
 
     # If user is not in any organization, only show incidents they own
     return Incident.objects.filter(owner=user)
+
+
+def get_current_organization(request):
+    """Get the current organization from session if set and user has access"""
+    org_id = request.session.get("current_organization_id")
+    if not org_id:
+        return None
+
+    try:
+        organization = IncidentOrganization.objects.get(id=org_id)
+        # Check if user has access to this organization
+        if IncidentOrganizationUser.objects.filter(
+            user=request.user, organization=organization
+        ).exists():
+            return organization
+    except IncidentOrganization.DoesNotExist:
+        pass
+
+    # Clear invalid organization from session
+    request.session.pop("current_organization_id", None)
+    return None
 
 
 def decode_aamva_fields(pdf417_data_txt: typing.List[str]) -> dict:
@@ -951,3 +986,320 @@ def clear_organization(request):
 
     # Redirect back to where they came from, or dashboard
     return redirect(request.META.get("HTTP_REFERER", "operations:dashboard"))
+
+
+# Asset Management Views
+
+
+@login_required
+def asset_list(request):
+    """
+    List all assets accessible to the user.
+    """
+    current_organization = get_current_organization(request)
+    user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+        "organization", flat=True
+    )
+
+    if current_organization:
+        # Filter to current organization only
+        if current_organization.id in user_orgs:
+            assets = Asset.objects.filter(organization=current_organization)
+        else:
+            assets = Asset.objects.none()
+            messages.error(request, "You don't have access to this organization.")
+    else:
+        # Show assets from all user's organizations
+        assets = Asset.objects.filter(organization__in=user_orgs)
+
+    assets = assets.select_related(
+        "category", "organization", "current_holder", "current_incident"
+    ).order_by("identifier")
+
+    context = {
+        "assets": assets,
+        "current_organization": current_organization,
+    }
+    return render(request, "operations/assets/asset_list.html", context)
+
+
+@login_required
+def asset_detail(request, asset_id):
+    """
+    Display detailed information about an asset.
+    """
+    asset = get_object_or_404(Asset, id=asset_id)
+
+    # Check if user has access to this asset
+    try:
+        IncidentOrganizationUser.objects.get(organization=asset.organization, user=request.user)
+    except IncidentOrganizationUser.DoesNotExist:
+        messages.error(request, "You don't have access to this asset.")
+        return redirect("operations:asset_list")
+
+    # Get checkout history
+    checkouts = (
+        asset.checkouts.all()
+        .select_related("checked_out_by", "checked_out_to", "incident")
+        .order_by("-checkout_time")
+    )
+
+    # Check if user can checkout this asset
+    can_checkout = asset.can_user_checkout(request.user)
+
+    # Check if user can manage this asset
+    can_manage = asset.can_user_manage(request.user)
+
+    # Get pending checkout for this user if any
+    pending_checkout = asset.checkouts.filter(checked_out_to=request.user, status="PENDING").first()
+
+    # Get active checkout for this user if any
+    active_checkout = asset.checkouts.filter(checked_out_to=request.user, status="ACTIVE").first()
+
+    context = {
+        "asset": asset,
+        "checkouts": checkouts,
+        "can_checkout": can_checkout,
+        "can_manage": can_manage,
+        "pending_checkout": pending_checkout,
+        "active_checkout": active_checkout,
+    }
+    return render(request, "operations/assets/asset_detail.html", context)
+
+
+@login_required
+def asset_create(request):
+    """
+    Create a new asset.
+    """
+    if request.method == "POST":
+        form = AssetForm(request.POST, user=request.user)
+        if form.is_valid():
+            asset = form.save()
+            messages.success(request, f"Asset {asset.identifier} created successfully.")
+            return redirect("operations:asset_detail", asset_id=asset.id)
+    else:
+        form = AssetForm(user=request.user)
+
+    context = {"form": form, "title": "Create Asset"}
+    return render(request, "operations/assets/asset_form.html", context)
+
+
+@login_required
+def asset_edit(request, asset_id):
+    """
+    Edit an existing asset.
+    """
+    asset = get_object_or_404(Asset, id=asset_id)
+
+    # Check if user can manage this asset
+    if not asset.can_user_manage(request.user):
+        messages.error(request, "You don't have permission to edit this asset.")
+        return redirect("operations:asset_detail", asset_id=asset.id)
+
+    if request.method == "POST":
+        form = AssetForm(request.POST, instance=asset, user=request.user)
+        if form.is_valid():
+            asset = form.save()
+            messages.success(request, f"Asset {asset.identifier} updated successfully.")
+            return redirect("operations:asset_detail", asset_id=asset.id)
+    else:
+        form = AssetForm(instance=asset, user=request.user)
+
+    context = {"form": form, "asset": asset, "title": f"Edit Asset: {asset.identifier}"}
+    return render(request, "operations/assets/asset_form.html", context)
+
+
+@login_required
+def asset_checkout(request, asset_id):
+    """
+    Checkout an asset to another user.
+    """
+    asset = get_object_or_404(Asset, id=asset_id)
+
+    # Check if user can checkout this asset
+    if not asset.can_user_checkout(request.user) and not asset.can_user_manage(request.user):
+        messages.error(request, "You don't have permission to checkout this asset.")
+        return redirect("operations:asset_detail", asset_id=asset.id)
+
+    if not asset.is_available:
+        messages.error(request, "This asset is not available for checkout.")
+        return redirect("operations:asset_detail", asset_id=asset.id)
+
+    if request.method == "POST":
+        form = AssetCheckoutForm(request.POST, user=request.user, asset=asset)
+        if form.is_valid():
+            checkout = form.save(commit=False)
+            checkout.asset = asset
+            checkout.checked_out_by = request.user
+            checkout.save()
+
+            messages.success(
+                request,
+                f"Asset {asset.identifier} checkout initiated. Waiting for {checkout.checked_out_to.get_full_name() or checkout.checked_out_to.username} to accept.",
+            )
+            return redirect("operations:asset_detail", asset_id=asset.id)
+    else:
+        form = AssetCheckoutForm(user=request.user, asset=asset)
+
+    context = {"form": form, "asset": asset, "title": f"Checkout Asset: {asset.identifier}"}
+    return render(request, "operations/assets/asset_checkout_form.html", context)
+
+
+@login_required
+def asset_accept_checkout(request, checkout_id):
+    """
+    Accept a pending asset checkout.
+    """
+    checkout = get_object_or_404(AssetCheckout, id=checkout_id)
+
+    if not checkout.can_user_accept(request.user):
+        messages.error(request, "You cannot accept this checkout.")
+        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+
+    if request.method == "POST":
+        form = AssetAcceptForm(request.POST)
+        if form.is_valid():
+            try:
+                checkout.accept_checkout(
+                    user=request.user,
+                    condition_notes=form.cleaned_data.get("condition_notes", ""),
+                    location=form.cleaned_data.get("location", ""),
+                )
+                messages.success(request, f"Asset {checkout.asset.identifier} checkout accepted.")
+            except ValueError as e:
+                messages.error(request, str(e))
+            return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+    else:
+        form = AssetAcceptForm()
+
+    context = {
+        "form": form,
+        "checkout": checkout,
+        "title": f"Accept Checkout: {checkout.asset.identifier}",
+    }
+    return render(request, "operations/assets/asset_accept_form.html", context)
+
+
+@login_required
+def asset_checkin(request, checkout_id):
+    """
+    Check in an asset that is currently checked out.
+    """
+    checkout = get_object_or_404(AssetCheckout, id=checkout_id)
+
+    if not checkout.can_user_checkin(request.user):
+        messages.error(request, "You cannot check in this asset.")
+        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+
+    if request.method == "POST":
+        form = AssetCheckinForm(request.POST)
+        if form.is_valid():
+            try:
+                checkout.checkin_asset(
+                    user=request.user,
+                    condition_notes=form.cleaned_data.get("condition_notes", ""),
+                    location=form.cleaned_data.get("location", ""),
+                    issues=form.cleaned_data.get("issues_reported", ""),
+                )
+                messages.success(
+                    request, f"Asset {checkout.asset.identifier} checked in successfully."
+                )
+            except ValueError as e:
+                messages.error(request, str(e))
+            return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+    else:
+        form = AssetCheckinForm()
+
+    context = {
+        "form": form,
+        "checkout": checkout,
+        "title": f"Check In Asset: {checkout.asset.identifier}",
+    }
+    return render(request, "operations/assets/asset_checkin_form.html", context)
+
+
+@login_required
+def asset_cancel_checkout(request, checkout_id):
+    """
+    Cancel a pending asset checkout.
+    """
+    checkout = get_object_or_404(AssetCheckout, id=checkout_id)
+
+    if not checkout.can_user_cancel(request.user):
+        messages.error(request, "You cannot cancel this checkout.")
+        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+
+    try:
+        checkout.cancel_checkout(request.user)
+        messages.success(
+            request, f"Checkout for asset {checkout.asset.identifier} has been cancelled."
+        )
+    except ValueError as e:
+        messages.error(request, str(e))
+
+    return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+
+
+@login_required
+def asset_category_list(request):
+    """
+    List all asset categories.
+    """
+    categories = AssetCategory.objects.all().order_by("name")
+
+    context = {"categories": categories}
+    return render(request, "operations/assets/category_list.html", context)
+
+
+@login_required
+def asset_category_create(request):
+    """
+    Create a new asset category.
+    """
+    # Check if user has admin permissions in any organization
+    user_admin_orgs = IncidentOrganizationUser.objects.filter(
+        user=request.user, role="ADMIN"
+    ).exists()
+
+    if not user_admin_orgs and not request.user.is_superuser:
+        messages.error(request, "You don't have permission to create asset categories.")
+        return redirect("operations:asset_category_list")
+
+    if request.method == "POST":
+        form = AssetCategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f"Asset category '{category.name}' created successfully.")
+            return redirect("operations:asset_category_list")
+    else:
+        form = AssetCategoryForm()
+
+    context = {"form": form, "title": "Create Asset Category"}
+    return render(request, "operations/assets/category_form.html", context)
+
+
+@login_required
+def my_assets(request):
+    """
+    Show assets currently checked out to the user.
+    """
+    # Get active checkouts for this user
+    active_checkouts = (
+        AssetCheckout.objects.filter(checked_out_to=request.user, status="ACTIVE")
+        .select_related("asset", "asset__category", "incident")
+        .order_by("asset__identifier")
+    )
+
+    # Get pending checkouts for this user
+    pending_checkouts = (
+        AssetCheckout.objects.filter(checked_out_to=request.user, status="PENDING")
+        .select_related("asset", "asset__category", "checked_out_by")
+        .order_by("asset__identifier")
+    )
+
+    context = {
+        "active_checkouts": active_checkouts,
+        "pending_checkouts": pending_checkouts,
+    }
+    return render(request, "operations/assets/my_assets.html", context)

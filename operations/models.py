@@ -557,3 +557,366 @@ class IncidentLink(models.Model):
 
     def __str__(self):
         return f"{self.from_incident.name} {self.get_relationship_type_display()} {self.to_incident.name}"
+
+
+# Asset Management Models
+
+
+class AssetCategory(models.Model):
+    """
+    Categories for assets that define special data requirements
+    Examples: Vehicles, Radios, Laptops, Medical Equipment
+    """
+
+    name = models.CharField(max_length=100, help_text="Name of the asset category")
+    description = models.TextField(blank=True, help_text="Description of this asset category")
+    requires_license = models.BooleanField(
+        default=False, help_text="Whether assets in this category require a license to operate"
+    )
+    requires_training = models.BooleanField(
+        default=False, help_text="Whether assets in this category require special training"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Asset Category"
+        verbose_name_plural = "Asset Categories"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Asset(models.Model):
+    """
+    Represents a trackable asset belonging to an organization
+    Examples: Radios, laptops, vehicles, medical equipment
+    """
+
+    STATUS_CHOICES = [
+        ("AVAILABLE", "Available"),
+        ("IN_USE", "In Use"),
+        ("MAINTENANCE", "Under Maintenance"),
+        ("RETIRED", "Retired"),
+        ("LOST", "Lost"),
+        ("DAMAGED", "Damaged"),
+    ]
+
+    # Basic asset information
+    identifier = models.CharField(
+        max_length=50,
+        help_text="Unique identifier for the asset (asset tag, serial number, etc.)",
+    )
+    name = models.CharField(max_length=200, help_text="Name or model of the asset")
+    description = models.TextField(blank=True, help_text="Detailed description of the asset")
+    category = models.ForeignKey(
+        AssetCategory,
+        on_delete=models.CASCADE,
+        related_name="assets",
+        help_text="Category this asset belongs to",
+    )
+
+    # Ownership and location
+    organization = models.ForeignKey(
+        IncidentOrganization,
+        on_delete=models.CASCADE,
+        related_name="assets",
+        help_text="Organization that owns this asset",
+    )
+    current_holder = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="held_assets",
+        help_text="User currently holding this asset",
+    )
+    current_incident = models.ForeignKey(
+        Incident,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assets_in_use",
+        help_text="Incident this asset is currently being used for",
+    )
+
+    # Status and tracking
+    status = models.CharField(
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default="AVAILABLE",
+        help_text="Current status of the asset",
+    )
+    location = models.CharField(
+        max_length=200, blank=True, help_text="Current location of the asset"
+    )
+
+    # Asset-specific fields (extensible for special categories)
+    serial_number = models.CharField(
+        max_length=100, blank=True, help_text="Serial number of the asset"
+    )
+    purchase_date = models.DateField(
+        null=True, blank=True, help_text="Date the asset was purchased"
+    )
+    warranty_expiration = models.DateField(
+        null=True, blank=True, help_text="Date the warranty expires"
+    )
+    value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Purchase or estimated value of the asset",
+    )
+
+    # Radio-specific fields (when category is radio)
+    frequency = models.CharField(
+        max_length=50, blank=True, help_text="Radio frequency (for radio assets)"
+    )
+    call_sign = models.CharField(
+        max_length=20, blank=True, help_text="Call sign (for radio assets)"
+    )
+
+    # Vehicle-specific fields (when category is vehicle)
+    license_plate = models.CharField(
+        max_length=20, blank=True, help_text="License plate number (for vehicle assets)"
+    )
+    vin = models.CharField(
+        max_length=17, blank=True, help_text="Vehicle Identification Number (for vehicle assets)"
+    )
+    fuel_type = models.CharField(
+        max_length=20, blank=True, help_text="Type of fuel used (for vehicle assets)"
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [["organization", "identifier"]]
+        verbose_name = "Asset"
+        verbose_name_plural = "Assets"
+        ordering = ["identifier", "name"]
+
+    def __str__(self):
+        return f"{self.identifier} - {self.name}"
+
+    @property
+    def is_available(self):
+        """Check if the asset is available for checkout"""
+        return self.status == "AVAILABLE"
+
+    @property
+    def is_in_use(self):
+        """Check if the asset is currently in use"""
+        return self.status == "IN_USE"
+
+    def can_user_checkout(self, user):
+        """Check if a user can checkout this asset"""
+        if not user.is_authenticated:
+            return False
+
+        # Asset must be available
+        if not self.is_available:
+            return False
+
+        # User must be a member of the asset's organization
+        try:
+            IncidentOrganizationUser.objects.get(organization=self.organization, user=user)
+            return True
+        except IncidentOrganizationUser.DoesNotExist:
+            return False
+
+    def can_user_manage(self, user):
+        """Check if a user can manage (edit/delete) this asset"""
+        if not user.is_authenticated:
+            return False
+
+        # Superusers can manage all assets
+        if user.is_superuser:
+            return True
+
+        # Check organization membership and role
+        try:
+            org_user = IncidentOrganizationUser.objects.get(
+                organization=self.organization, user=user
+            )
+            # Admins can manage assets
+            if org_user.role == "ADMIN":
+                return True
+        except IncidentOrganizationUser.DoesNotExist:
+            pass
+
+        return False
+
+
+class AssetCheckout(models.Model):
+    """
+    Represents a checkout/checkin transaction for an asset
+    Implements a two-step process: checkout (pending) -> checkin (completed)
+    """
+
+    STATUS_CHOICES = [
+        ("PENDING", "Pending - Waiting for new holder to accept"),
+        ("ACTIVE", "Active - Asset is checked out"),
+        ("COMPLETED", "Completed - Asset has been checked back in"),
+        ("CANCELLED", "Cancelled - Checkout was cancelled"),
+    ]
+
+    # Asset and users involved
+    asset = models.ForeignKey(
+        Asset,
+        on_delete=models.CASCADE,
+        related_name="checkouts",
+        help_text="Asset being checked out",
+    )
+    checked_out_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="asset_checkouts_given",
+        help_text="User who initiated the checkout (current holder)",
+    )
+    checked_out_to = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="asset_checkouts_received",
+        help_text="User receiving the asset",
+    )
+
+    # Incident and purpose
+    incident = models.ForeignKey(
+        Incident,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="asset_checkouts",
+        help_text="Incident the asset is being checked out for",
+    )
+    purpose = models.TextField(blank=True, help_text="Purpose or reason for checking out the asset")
+
+    # Status and timing
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="PENDING",
+        help_text="Current status of the checkout",
+    )
+    checkout_time = models.DateTimeField(
+        auto_now_add=True, help_text="When the checkout was initiated"
+    )
+    accepted_time = models.DateTimeField(
+        null=True, blank=True, help_text="When the new holder accepted the asset"
+    )
+    checkin_time = models.DateTimeField(
+        null=True, blank=True, help_text="When the asset was checked back in"
+    )
+
+    # Condition tracking
+    checkout_condition = models.TextField(
+        blank=True, help_text="Condition of the asset at checkout"
+    )
+    checkin_condition = models.TextField(blank=True, help_text="Condition of the asset at checkin")
+    issues_reported = models.TextField(
+        blank=True, help_text="Any issues or damage reported during checkout"
+    )
+
+    # Location tracking
+    checkout_location = models.CharField(
+        max_length=200, blank=True, help_text="Location where checkout occurred"
+    )
+    checkin_location = models.CharField(
+        max_length=200, blank=True, help_text="Location where checkin occurred"
+    )
+
+    class Meta:
+        verbose_name = "Asset Checkout"
+        verbose_name_plural = "Asset Checkouts"
+        ordering = ["-checkout_time"]
+
+    def __str__(self):
+        return f"{self.asset.identifier} - {self.checked_out_by.get_full_name() or self.checked_out_by.username} → {self.checked_out_to.get_full_name() or self.checked_out_to.username}"
+
+    @property
+    def is_pending(self):
+        """Check if the checkout is pending acceptance"""
+        return self.status == "PENDING"
+
+    @property
+    def is_active(self):
+        """Check if the checkout is active (asset is checked out)"""
+        return self.status == "ACTIVE"
+
+    @property
+    def is_completed(self):
+        """Check if the checkout is completed (asset checked back in)"""
+        return self.status == "COMPLETED"
+
+    def can_user_accept(self, user):
+        """Check if a user can accept this pending checkout"""
+        return self.is_pending and self.checked_out_to == user
+
+    def can_user_checkin(self, user):
+        """Check if a user can check in this asset"""
+        return self.is_active and self.checked_out_to == user
+
+    def can_user_cancel(self, user):
+        """Check if a user can cancel this checkout"""
+        if not self.is_pending:
+            return False
+
+        # Either person involved can cancel, or asset managers
+        if user in [self.checked_out_by, self.checked_out_to]:
+            return True
+
+        # Asset managers can cancel
+        return self.asset.can_user_manage(user)
+
+    def accept_checkout(self, user, condition_notes="", location=""):
+        """Accept a pending checkout"""
+        if not self.can_user_accept(user):
+            raise ValueError("User cannot accept this checkout")
+
+        self.status = "ACTIVE"
+        self.accepted_time = timezone.now()
+        if condition_notes:
+            self.checkout_condition = condition_notes
+        if location:
+            self.checkout_location = location
+        self.save()
+
+        # Update asset status and holder
+        self.asset.status = "IN_USE"
+        self.asset.current_holder = self.checked_out_to
+        if self.incident:
+            self.asset.current_incident = self.incident
+        self.asset.save()
+
+    def checkin_asset(self, user, condition_notes="", location="", issues=""):
+        """Check in an active asset"""
+        if not self.can_user_checkin(user):
+            raise ValueError("User cannot check in this asset")
+
+        self.status = "COMPLETED"
+        self.checkin_time = timezone.now()
+        if condition_notes:
+            self.checkin_condition = condition_notes
+        if location:
+            self.checkin_location = location
+        if issues:
+            self.issues_reported = issues
+        self.save()
+
+        # Update asset status and clear holder
+        self.asset.status = "AVAILABLE"
+        self.asset.current_holder = None
+        self.asset.current_incident = None
+        self.asset.save()
+
+    def cancel_checkout(self, user):
+        """Cancel a pending checkout"""
+        if not self.can_user_cancel(user):
+            raise ValueError("User cannot cancel this checkout")
+
+        self.status = "CANCELLED"
+        self.save()

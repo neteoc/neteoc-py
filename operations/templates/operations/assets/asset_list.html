@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>
+                        Assets
+                        {% if current_organization %}<small class="text-muted">- {{ current_organization.name }}</small>{% endif %}
+                    </h1>
+                    <div>
+                        {% url 'operations:asset_create' as create_url %}
+                        {% url 'operations:my_assets' as my_assets_url %}
+                        {% url 'operations:asset_category_list' as categories_url %}
+                        {% bootstrap_button button_type="link" content="Create Asset" button_class="btn-primary" href=create_url %}
+                        {% bootstrap_button button_type="link" content="My Assets" button_class="btn-outline-info" href=my_assets_url %}
+                        {% bootstrap_button button_type="link" content="Categories" button_class="btn-outline-secondary" href=categories_url %}
+                    </div>
+                </div>
+                {% if assets %}
+                    <div class="row">
+                        {% for asset in assets %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <a href="{% url 'operations:asset_detail' asset.id %}"
+                                               class="text-decoration-none">{{ asset.identifier }}</a>
+                                        </h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ asset.name }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">{{ asset.category.name }}</small>
+                                        </p>
+                                        <div class="mb-2">
+                                            {% if asset.status == 'AVAILABLE' %}
+                                                <span class="badge bg-success">Available</span>
+                                            {% elif asset.status == 'IN_USE' %}
+                                                <span class="badge bg-warning">In Use</span>
+                                            {% elif asset.status == 'MAINTENANCE' %}
+                                                <span class="badge bg-info">Maintenance</span>
+                                            {% elif asset.status == 'RETIRED' %}
+                                                <span class="badge bg-secondary">Retired</span>
+                                            {% elif asset.status == 'LOST' %}
+                                                <span class="badge bg-danger">Lost</span>
+                                            {% elif asset.status == 'DAMAGED' %}
+                                                <span class="badge bg-danger">Damaged</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if asset.current_holder %}
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    Checked out to: {{ asset.current_holder.get_full_name|default:asset.current_holder.username }}
+                                                </small>
+                                            </p>
+                                        {% endif %}
+                                        {% if asset.current_incident %}
+                                            <p class="card-text">
+                                                <small class="text-muted">For incident: {{ asset.current_incident.name }}</small>
+                                            </p>
+                                        {% endif %}
+                                        {% if asset.location %}
+                                            <p class="card-text">
+                                                <small class="text-muted">Location: {{ asset.location }}</small>
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer">
+                                        <small class="text-muted">{{ asset.organization.name }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <p class="text-muted mb-4">No assets have been created yet.</p>
+                        {% url 'operations:asset_create' as create_url %}
+                        {% bootstrap_button button_type="link" content="Create First Asset" button_class="btn-primary" href=create_url %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

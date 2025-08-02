@@ -7,6 +7,9 @@ from .models import (
     IncidentOrganization,
     IncidentOrganizationUser,
     SupportRequest,
+    AssetCategory,
+    Asset,
+    AssetCheckout,
 )
 from logging import getLogger
 import re
@@ -345,3 +348,229 @@ class SupportRequestForm(ModelForm):
                 target_queryset = target_queryset.exclude(id=requesting_organization.id)
 
             self.fields["target_organization"].queryset = target_queryset
+
+
+# Asset Management Forms
+
+
+class AssetCategoryForm(ModelForm):
+    """Form for creating and editing asset categories"""
+
+    class Meta:
+        model = AssetCategory
+        fields = ["name", "description", "requires_license", "requires_training"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "requires_license": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "requires_training": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+
+class AssetForm(ModelForm):
+    """Form for creating and editing assets"""
+
+    category = forms.ModelChoiceField(
+        queryset=AssetCategory.objects.all(),
+        required=True,
+        empty_label="-- Select category --",
+        help_text="Category this asset belongs to",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    organization = forms.ModelChoiceField(
+        queryset=IncidentOrganization.objects.filter(is_active=True),
+        required=True,
+        empty_label="-- Select organization --",
+        help_text="Organization that owns this asset",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    purchase_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        help_text="Date the asset was purchased",
+    )
+
+    warranty_expiration = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        help_text="Date the warranty expires",
+    )
+
+    class Meta:
+        model = Asset
+        fields = [
+            "identifier",
+            "name",
+            "description",
+            "category",
+            "organization",
+            "status",
+            "location",
+            "serial_number",
+            "purchase_date",
+            "warranty_expiration",
+            "value",
+            "frequency",
+            "call_sign",
+            "license_plate",
+            "vin",
+            "fuel_type",
+        ]
+        widgets = {
+            "identifier": forms.TextInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "location": forms.TextInput(attrs={"class": "form-control"}),
+            "serial_number": forms.TextInput(attrs={"class": "form-control"}),
+            "value": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "frequency": forms.TextInput(attrs={"class": "form-control"}),
+            "call_sign": forms.TextInput(attrs={"class": "form-control"}),
+            "license_plate": forms.TextInput(attrs={"class": "form-control"}),
+            "vin": forms.TextInput(attrs={"class": "form-control"}),
+            "fuel_type": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # Filter organizations to only those the user belongs to
+            user_orgs = IncidentOrganizationUser.objects.filter(user=user).values_list(
+                "organization", flat=True
+            )
+            self.fields["organization"].queryset = IncidentOrganization.objects.filter(
+                id__in=user_orgs, is_active=True
+            )
+
+    def clean_identifier(self):
+        """Validate that identifier is unique within the organization"""
+        identifier = self.cleaned_data.get("identifier")
+        organization = self.cleaned_data.get("organization")
+
+        if identifier and organization:
+            # Check for existing asset with same identifier in same organization
+            existing = Asset.objects.filter(
+                identifier=identifier, organization=organization
+            ).exclude(pk=self.instance.pk if self.instance else None)
+
+            if existing.exists():
+                raise forms.ValidationError(
+                    f"An asset with identifier '{identifier}' already exists in {organization.name}"
+                )
+
+        return identifier
+
+
+class AssetCheckoutForm(ModelForm):
+    """Form for checking out an asset to another user"""
+
+    checked_out_to = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True),
+        required=True,
+        empty_label="-- Select user to check out to --",
+        help_text="User who will receive the asset",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    incident = forms.ModelChoiceField(
+        queryset=Incident.objects.none(),  # Will be populated in __init__
+        required=False,
+        empty_label="-- Select incident (optional) --",
+        help_text="Incident the asset is being checked out for",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = AssetCheckout
+        fields = [
+            "checked_out_to",
+            "incident",
+            "purpose",
+            "checkout_condition",
+            "checkout_location",
+        ]
+        widgets = {
+            "purpose": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "checkout_condition": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "checkout_location": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        asset = kwargs.pop("asset", None)
+        super().__init__(*args, **kwargs)
+
+        if user and asset:
+            # Populate users from the asset's organization
+            asset_org_users = IncidentOrganizationUser.objects.filter(
+                organization=asset.organization
+            ).values_list("user", flat=True)
+            self.fields["checked_out_to"].queryset = User.objects.filter(
+                id__in=asset_org_users, is_active=True
+            ).order_by("first_name", "last_name", "username")
+
+            # Populate active incidents from the asset's organization
+            self.fields["incident"].queryset = Incident.objects.filter(
+                organization=asset.organization, status="ACTIVE"
+            ).order_by("-start_date")
+
+            # Custom display for users showing full name if available
+            self.fields["checked_out_to"].label_from_instance = self.user_label_from_instance
+
+    def user_label_from_instance(self, user):
+        """Show user's full name and username for better identification"""
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name} ({user.username})"
+        elif user.first_name:
+            return f"{user.first_name} ({user.username})"
+        elif user.last_name:
+            return f"{user.last_name} ({user.username})"
+        else:
+            return user.username
+
+
+class AssetAcceptForm(forms.Form):
+    """Form for accepting a pending asset checkout"""
+
+    condition_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        help_text="Note the condition of the asset when you receive it",
+        label="Asset Condition",
+    )
+
+    location = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Location where you received the asset",
+        label="Pickup Location",
+    )
+
+
+class AssetCheckinForm(forms.Form):
+    """Form for checking in an asset"""
+
+    condition_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        help_text="Note the condition of the asset when returning it",
+        label="Asset Condition",
+    )
+
+    location = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Location where you are returning the asset",
+        label="Return Location",
+    )
+
+    issues_reported = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        help_text="Report any issues, damage, or problems with the asset",
+        label="Issues or Damage",
+    )

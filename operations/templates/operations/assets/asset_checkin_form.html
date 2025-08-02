@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">{{ title }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <p>
+                                <strong>Asset:</strong> {{ checkout.asset.identifier }} - {{ checkout.asset.name }}
+                            </p>
+                            <p>
+                                <strong>Checked out:</strong> {{ checkout.checkout_time|date:"M d, Y H:i" }}
+                            </p>
+                            {% if checkout.incident %}
+                                <p>
+                                    <strong>For incident:</strong> {{ checkout.incident.name }}
+                                </p>
+                            {% endif %}
+                            {% if checkout.purpose %}
+                                <p>
+                                    <strong>Purpose:</strong> {{ checkout.purpose }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% bootstrap_field form.condition_notes %}
+                            {% bootstrap_field form.location %}
+                            {% bootstrap_field form.issues_reported %}
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between">
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href="/operations/assets/{{ checkout.asset.id }}/" %}
+                                        {% bootstrap_button button_type="submit" content="Check In Asset" button_class="btn-success" %}
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="mt-4">
+                            <h6>When checking in the asset:</h6>
+                            <ul>
+                                <li>Note the current condition of the asset</li>
+                                <li>Report any issues or damage that occurred during checkout</li>
+                                <li>Specify where you are returning the asset</li>
+                                <li>The asset will become available for others to checkout</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

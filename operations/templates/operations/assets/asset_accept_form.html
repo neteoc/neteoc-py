@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">{{ title }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <p>
+                                <strong>Asset:</strong> {{ checkout.asset.identifier }} - {{ checkout.asset.name }}
+                            </p>
+                            <p>
+                                <strong>Checked out by:</strong> {{ checkout.checked_out_by.get_full_name|default:checkout.checked_out_by.username }}
+                            </p>
+                            {% if checkout.incident %}
+                                <p>
+                                    <strong>For incident:</strong> {{ checkout.incident.name }}
+                                </p>
+                            {% endif %}
+                            {% if checkout.purpose %}
+                                <p>
+                                    <strong>Purpose:</strong> {{ checkout.purpose }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% bootstrap_field form.condition_notes %}
+                            {% bootstrap_field form.location %}
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between">
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href="/operations/assets/{{ checkout.asset.id }}/" %}
+                                        {% bootstrap_button button_type="submit" content="Accept Checkout" button_class="btn-success" %}
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="mt-4">
+                            <h6>By accepting this checkout:</h6>
+                            <ul>
+                                <li>You confirm that you have received the asset</li>
+                                <li>The asset becomes your responsibility</li>
+                                <li>You can use the asset for the specified purpose</li>
+                                <li>You must check the asset back in when done</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

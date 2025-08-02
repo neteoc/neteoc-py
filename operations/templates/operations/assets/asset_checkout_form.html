@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">{{ title }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <p>
+                                <strong>Asset:</strong> {{ asset.identifier }} - {{ asset.name }}
+                            </p>
+                            <p>
+                                <strong>Current Status:</strong> {{ asset.get_status_display }}
+                            </p>
+                        </div>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% bootstrap_field form.checked_out_to %}
+                            {% bootstrap_field form.incident %}
+                            {% bootstrap_field form.purpose %}
+                            {% bootstrap_field form.checkout_condition %}
+                            {% bootstrap_field form.checkout_location %}
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between">
+                                        {% url 'operations:asset_detail' asset.id as asset_detail_url %}
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href=asset_detail_url %}
+                                        {% bootstrap_button button_type="submit" content="Initiate Checkout" button_class="btn-primary" %}
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="mt-4">
+                            <h6>How Asset Checkout Works:</h6>
+                            <ol>
+                                <li>You initiate the checkout by selecting who to check it out to</li>
+                                <li>The selected user receives a notification and must accept the checkout</li>
+                                <li>Once accepted, the asset status changes to "In Use" and the user becomes the holder</li>
+                                <li>The user can then check the asset back in when done</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

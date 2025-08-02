@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}{{ asset.identifier }} - {{ asset.name }}{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>{{ asset.identifier }} - {{ asset.name }}</h1>
+                    <div>
+                        {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="/operations/assets/" %}
+                        {% if can_manage %}
+                            {% url 'operations:asset_edit' asset.id as edit_url %}
+                            {% bootstrap_button button_type="link" content="Edit Asset" button_class="btn-outline-primary" href=edit_url %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Asset Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <th>Identifier:</th>
+                                                <td>{{ asset.identifier }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Name:</th>
+                                                <td>{{ asset.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Category:</th>
+                                                <td>{{ asset.category.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Organization:</th>
+                                                <td>{{ asset.organization.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Status:</th>
+                                                <td>
+                                                    {% if asset.status == 'AVAILABLE' %}
+                                                        <span class="badge bg-success">Available</span>
+                                                    {% elif asset.status == 'IN_USE' %}
+                                                        <span class="badge bg-warning">In Use</span>
+                                                    {% elif asset.status == 'MAINTENANCE' %}
+                                                        <span class="badge bg-info">Maintenance</span>
+                                                    {% elif asset.status == 'RETIRED' %}
+                                                        <span class="badge bg-secondary">Retired</span>
+                                                    {% elif asset.status == 'LOST' %}
+                                                        <span class="badge bg-danger">Lost</span>
+                                                    {% elif asset.status == 'DAMAGED' %}
+                                                        <span class="badge bg-danger">Damaged</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Location:</th>
+                                                <td>{{ asset.location|default:"Not specified" }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <table class="table table-borderless">
+                                            {% if asset.serial_number %}
+                                                <tr>
+                                                    <th>Serial Number:</th>
+                                                    <td>{{ asset.serial_number }}</td>
+                                                </tr>
+                                            {% endif %}
+                                            {% if asset.value %}
+                                                <tr>
+                                                    <th>Value:</th>
+                                                    <td>${{ asset.value }}</td>
+                                                </tr>
+                                            {% endif %}
+                                            {% if asset.purchase_date %}
+                                                <tr>
+                                                    <th>Purchase Date:</th>
+                                                    <td>{{ asset.purchase_date }}</td>
+                                                </tr>
+                                            {% endif %}
+                                            {% if asset.warranty_expiration %}
+                                                <tr>
+                                                    <th>Warranty Expires:</th>
+                                                    <td>{{ asset.warranty_expiration }}</td>
+                                                </tr>
+                                            {% endif %}
+                                        </table>
+                                    </div>
+                                </div>
+                                {% if asset.description %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6>Description</h6>
+                                            <p>{{ asset.description }}</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- Radio-specific fields -->
+                                {% if asset.frequency or asset.call_sign %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6>Radio Information</h6>
+                                            <table class="table table-borderless">
+                                                {% if asset.frequency %}
+                                                    <tr>
+                                                        <th>Frequency:</th>
+                                                        <td>{{ asset.frequency }}</td>
+                                                    </tr>
+                                                {% endif %}
+                                                {% if asset.call_sign %}
+                                                    <tr>
+                                                        <th>Call Sign:</th>
+                                                        <td>{{ asset.call_sign }}</td>
+                                                    </tr>
+                                                {% endif %}
+                                            </table>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- Vehicle-specific fields -->
+                                {% if asset.license_plate or asset.vin or asset.fuel_type %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6>Vehicle Information</h6>
+                                            <table class="table table-borderless">
+                                                {% if asset.license_plate %}
+                                                    <tr>
+                                                        <th>License Plate:</th>
+                                                        <td>{{ asset.license_plate }}</td>
+                                                    </tr>
+                                                {% endif %}
+                                                {% if asset.vin %}
+                                                    <tr>
+                                                        <th>VIN:</th>
+                                                        <td>{{ asset.vin }}</td>
+                                                    </tr>
+                                                {% endif %}
+                                                {% if asset.fuel_type %}
+                                                    <tr>
+                                                        <th>Fuel Type:</th>
+                                                        <td>{{ asset.fuel_type }}</td>
+                                                    </tr>
+                                                {% endif %}
+                                            </table>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Current Status Card -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Current Status</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if asset.current_holder %}
+                                    <p>
+                                        <strong>Checked out to:</strong>
+                                        <br>
+                                        {{ asset.current_holder.get_full_name|default:asset.current_holder.username }}
+                                    </p>
+                                    {% if asset.current_incident %}
+                                        <p>
+                                            <strong>For incident:</strong>
+                                            <br>
+                                            <a href="{% url 'operations:incident_detail' asset.current_incident.id %}">{{ asset.current_incident.name }}</a>
+                                        </p>
+                                    {% endif %}
+                                    {% if active_checkout %}
+                                        {% bootstrap_button button_type="link" content="Check In" button_class="btn-success btn-sm" href="/operations/assets/checkout/{{ active_checkout.id }}/checkin/" %}
+                                    {% endif %}
+                                {% else %}
+                                    <p>Asset is {{ asset.get_status_display|lower }}</p>
+                                    {% if can_checkout and asset.is_available %}
+                                        {% url 'operations:asset_checkout' asset.id as checkout_url %}
+                                        {% bootstrap_button button_type="link" content="Check Out" button_class="btn-primary" href=checkout_url %}
+                                    {% endif %}
+                                {% endif %}
+                                {% if pending_checkout %}
+                                    <div class="alert alert-warning mt-3">
+                                        <strong>Pending Checkout</strong>
+                                        <br>
+                                        You have a pending checkout for this asset.
+                                        {% bootstrap_button button_type="link" content="Accept" button_class="btn-warning btn-sm" href="/operations/assets/checkout/{{ pending_checkout.id }}/accept/" %}
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="/operations/assets/checkout/{{ pending_checkout.id }}/cancel/" %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Checkout History -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Checkout History</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if checkouts %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>From</th>
+                                                    <th>To</th>
+                                                    <th>Incident</th>
+                                                    <th>Status</th>
+                                                    <th>Checkout Time</th>
+                                                    <th>Checkin Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for checkout in checkouts %}
+                                                    <tr>
+                                                        <td>{{ checkout.checked_out_by.get_full_name|default:checkout.checked_out_by.username }}</td>
+                                                        <td>{{ checkout.checked_out_to.get_full_name|default:checkout.checked_out_to.username }}</td>
+                                                        <td>
+                                                            {% if checkout.incident %}
+                                                                <a href="{% url 'operations:incident_detail' checkout.incident.id %}">{{ checkout.incident.name }}</a>
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            {% if checkout.status == 'PENDING' %}
+                                                                <span class="badge bg-warning">Pending</span>
+                                                            {% elif checkout.status == 'ACTIVE' %}
+                                                                <span class="badge bg-success">Active</span>
+                                                            {% elif checkout.status == 'COMPLETED' %}
+                                                                <span class="badge bg-secondary">Completed</span>
+                                                            {% elif checkout.status == 'CANCELLED' %}
+                                                                <span class="badge bg-danger">Cancelled</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>{{ checkout.checkout_time|date:"M d, Y H:i" }}</td>
+                                                        <td>
+                                                            {% if checkout.checkin_time %}
+                                                                {{ checkout.checkin_time|date:"M d, Y H:i" }}
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No checkout history available.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

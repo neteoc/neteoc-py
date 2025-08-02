@@ -10,6 +10,9 @@ from .models import (
     IncidentOrganizationInvitation,
     SupportRequest,
     IncidentLink,
+    AssetCategory,
+    Asset,
+    AssetCheckout,
 )
 
 
@@ -459,3 +462,225 @@ class IncidentLinkAdmin(admin.ModelAdmin):
         if not change:  # Only for new objects
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+# Asset Management Admin
+
+
+@admin.register(AssetCategory)
+class AssetCategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "requires_license", "requires_training", "created_at"]
+    list_filter = ["requires_license", "requires_training", "created_at"]
+    search_fields = ["name", "description"]
+    readonly_fields = ["created_at", "updated_at"]
+
+    fieldsets = (
+        ("Category Information", {"fields": ("name", "description")}),
+        ("Requirements", {"fields": ("requires_license", "requires_training")}),
+        ("System Info", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+    )
+
+
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    list_display = [
+        "identifier",
+        "name",
+        "category",
+        "organization",
+        "status",
+        "current_holder",
+        "current_incident",
+        "created_at",
+    ]
+    list_filter = [
+        "status",
+        "category",
+        "organization",
+        "current_incident",
+        "created_at",
+    ]
+    search_fields = [
+        "identifier",
+        "name",
+        "description",
+        "serial_number",
+        "license_plate",
+        "call_sign",
+    ]
+    readonly_fields = ["created_at", "updated_at"]
+
+    fieldsets = (
+        ("Basic Information", {"fields": ("identifier", "name", "description", "category")}),
+        (
+            "Ownership & Location",
+            {"fields": ("organization", "current_holder", "current_incident")},
+        ),
+        ("Status & Location", {"fields": ("status", "location")}),
+        (
+            "Asset Details",
+            {
+                "fields": (
+                    "serial_number",
+                    "purchase_date",
+                    "warranty_expiration",
+                    "value",
+                )
+            },
+        ),
+        (
+            "Radio-Specific",
+            {"fields": ("frequency", "call_sign"), "classes": ("collapse",)},
+        ),
+        (
+            "Vehicle-Specific",
+            {"fields": ("license_plate", "vin", "fuel_type"), "classes": ("collapse",)},
+        ),
+        ("System Info", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+    )
+
+    def get_queryset(self, request):
+        """Filter assets based on user's organization access"""
+        qs = (
+            super()
+            .get_queryset(request)
+            .select_related("category", "organization", "current_holder", "current_incident")
+        )
+
+        # Superusers can see all assets
+        if request.user.is_superuser:
+            return qs
+
+        # Filter assets based on organization membership
+        user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        return qs.filter(organization__in=user_orgs)
+
+    def has_change_permission(self, request, obj=None):
+        """Check if user can change this asset"""
+        if not obj:
+            return super().has_change_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_change_permission(request):
+            return False
+
+        # Check asset-specific permissions
+        return obj.can_user_manage(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        """Check if user can delete this asset"""
+        if not obj:
+            return super().has_delete_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_delete_permission(request):
+            return False
+
+        # Check asset-specific permissions
+        return obj.can_user_manage(request.user)
+
+
+@admin.register(AssetCheckout)
+class AssetCheckoutAdmin(admin.ModelAdmin):
+    list_display = [
+        "asset",
+        "checked_out_by",
+        "checked_out_to",
+        "incident",
+        "status",
+        "checkout_time",
+        "accepted_time",
+        "checkin_time",
+    ]
+    list_filter = [
+        "status",
+        "asset__category",
+        "asset__organization",
+        "incident",
+        "checkout_time",
+    ]
+    search_fields = [
+        "asset__identifier",
+        "asset__name",
+        "checked_out_by__username",
+        "checked_out_to__username",
+        "purpose",
+    ]
+    readonly_fields = ["checkout_time", "accepted_time", "checkin_time"]
+
+    fieldsets = (
+        ("Checkout Details", {"fields": ("asset", "checked_out_by", "checked_out_to")}),
+        ("Purpose & Incident", {"fields": ("incident", "purpose")}),
+        (
+            "Status & Timing",
+            {"fields": ("status", "checkout_time", "accepted_time", "checkin_time")},
+        ),
+        (
+            "Condition Tracking",
+            {
+                "fields": (
+                    "checkout_condition",
+                    "checkin_condition",
+                    "issues_reported",
+                )
+            },
+        ),
+        (
+            "Location Tracking",
+            {"fields": ("checkout_location", "checkin_location")},
+        ),
+    )
+
+    def get_queryset(self, request):
+        """Filter asset checkouts based on user's organization access"""
+        qs = (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "asset",
+                "asset__organization",
+                "checked_out_by",
+                "checked_out_to",
+                "incident",
+            )
+        )
+
+        # Superusers can see all checkouts
+        if request.user.is_superuser:
+            return qs
+
+        # Filter based on organization access
+        user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
+            "organization", flat=True
+        )
+        return qs.filter(asset__organization__in=user_orgs)
+
+    def has_change_permission(self, request, obj=None):
+        """Check if user can change this asset checkout"""
+        if not obj:
+            return super().has_change_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_change_permission(request):
+            return False
+
+        # Users involved in the checkout can change it
+        if request.user in [obj.checked_out_by, obj.checked_out_to]:
+            return True
+
+        # Asset managers can change checkouts
+        return obj.asset.can_user_manage(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        """Check if user can delete this asset checkout"""
+        if not obj:
+            return super().has_delete_permission(request)
+
+        # Standard Django permission check first
+        if not super().has_delete_permission(request):
+            return False
+
+        # Only asset managers can delete checkouts
+        return obj.asset.can_user_manage(request.user)

@@ -45,4 +45,24 @@ urlpatterns = [
         "switch-organization/<int:org_id>/", views.switch_organization, name="switch_organization"
     ),
     path("clear-organization/", views.clear_organization, name="clear_organization"),
+    # Asset management URLs
+    path("assets/", views.asset_list, name="asset_list"),
+    path("assets/<int:asset_id>/", views.asset_detail, name="asset_detail"),
+    path("assets/create/", views.asset_create, name="asset_create"),
+    path("assets/<int:asset_id>/edit/", views.asset_edit, name="asset_edit"),
+    path("assets/<int:asset_id>/checkout/", views.asset_checkout, name="asset_checkout"),
+    path(
+        "assets/checkout/<int:checkout_id>/accept/",
+        views.asset_accept_checkout,
+        name="asset_accept_checkout",
+    ),
+    path("assets/checkout/<int:checkout_id>/checkin/", views.asset_checkin, name="asset_checkin"),
+    path(
+        "assets/checkout/<int:checkout_id>/cancel/",
+        views.asset_cancel_checkout,
+        name="asset_cancel_checkout",
+    ),
+    path("assets/categories/", views.asset_category_list, name="asset_category_list"),
+    path("assets/categories/create/", views.asset_category_create, name="asset_category_create"),
+    path("assets/my/", views.my_assets, name="my_assets"),
 ]
