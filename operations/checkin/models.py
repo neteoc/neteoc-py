@@ -10,7 +10,10 @@ class CheckIn(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="The Django user this check-in is for (optional - person may not have a user account)",
+        help_text=(
+            "The Django user this check-in is for "
+            "(optional - person may not have a user account)"
+        ),
     )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)

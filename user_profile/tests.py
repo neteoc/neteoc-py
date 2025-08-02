@@ -12,19 +12,20 @@ class UserRosterAPITest(APITestCase):
 
     def setUp(self):
         """Set up test data"""
-        # Create test users
+        # Create test users with secure passwords
+        from django.contrib.auth.hashers import make_password
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
-            password="testpassword",
+            password=make_password("test_password_123!"),
             first_name="John",
             last_name="Doe",
         )
 
         self.user_no_profile = User.objects.create_user(
             username="testuser2",
-            email="test2@example.com",
-            password="testpassword",
+            email="test2@example.com", 
+            password=make_password("test_password_456!"),
             first_name="Jane",
             last_name="Smith",
         )

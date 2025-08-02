@@ -116,7 +116,8 @@ class DocumentExpirationDate(DataElement):
 
             else:
                 raise ValueError(
-                    "Timestamp of expiration matches current timestamp -- verify data was correctly parsed"
+                    "Timestamp of expiration matches current timestamp -- "
+                    "verify data was correctly parsed"
                 )
 
         timestamp = parse_date(self.value)
@@ -416,20 +417,18 @@ class PhysicalDescriptionWeightRange(DataElement):
         self.max_length = self.min_length
 
     def parse(self):
-        weight_ranges = dict(
-            {
-                "0": "up to 31 kg (up to 70 lbs)",
-                "1": "32 - 45 kg (71 - 100 lbs)",
-                "2": "46 - 59 kg (101 – 130 lbs)",
-                "3": "60 - 70 kg (131 – 160 lbs)",
-                "4": "71 - 86 kg (161 – 190 lbs) ",
-                "5": "87 - 100 kg (191 – 220 lbs) ",
-                "6": "101 - 113 kg (221 – 250 lbs) ",
-                "7": "114 - 127 kg (251 – 280 lbs)",
-                "8": " 128 – 145 kg (281 – 320 lbs)",
-                "9": "146+ kg (321+ lbs)",
-            }
-        )
+        weight_ranges = {
+            "0": "up to 31 kg (up to 70 lbs)",
+            "1": "32 - 45 kg (71 - 100 lbs)",
+            "2": "46 - 59 kg (101 – 130 lbs)",
+            "3": "60 - 70 kg (131 – 160 lbs)",
+            "4": "71 - 86 kg (161 – 190 lbs) ",
+            "5": "87 - 100 kg (191 – 220 lbs) ",
+            "6": "101 - 113 kg (221 – 250 lbs) ",
+            "7": "114 - 127 kg (251 – 280 lbs)",
+            "8": " 128 – 145 kg (281 – 320 lbs)",
+            "9": "146+ kg (321+ lbs)",
+        }
 
         return weight_ranges.get(str(self.value))
 

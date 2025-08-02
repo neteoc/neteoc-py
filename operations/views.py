@@ -185,9 +185,17 @@ class report(SingleTableView):
         accessible_incidents = get_accessible_incidents(self.request.user)
         queryset = queryset.filter(incident__in=accessible_incidents)
 
+        # Validate and filter by incident ID if provided
         incident_id = self.request.GET.get("incident")
         if incident_id:
-            queryset = queryset.filter(incident_id=incident_id)
+            try:
+                incident_id = int(incident_id)
+                # Verify the incident exists and user has access
+                if accessible_incidents.filter(id=incident_id).exists():
+                    queryset = queryset.filter(incident_id=incident_id)
+            except (ValueError, TypeError):
+                # Invalid incident ID format - ignore filter
+                pass
         return queryset.select_related("incident", "user")
 
     def get_context_data(self, **kwargs):
@@ -201,9 +209,11 @@ class report(SingleTableView):
         incident_id = self.request.GET.get("incident")
         if incident_id:
             try:
+                incident_id = int(incident_id)
                 # Make sure user has access to this incident
                 context["current_incident"] = accessible_incidents.get(id=incident_id)
-            except Incident.DoesNotExist:
+            except (ValueError, TypeError, Incident.DoesNotExist):
+                # Invalid incident ID or no access - skip setting current_incident
                 pass
 
         return context
@@ -804,6 +814,78 @@ def support_requests_list(request):
     return render(request, "operations/support/requests_list.html", context)
 
 
+def _handle_cancel_support_request(support_request, request):
+    """Handle cancellation of a support request"""
+    support_request.status = "CANCELLED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get(
+        "cancel_reason", "Request cancelled by requesting organization"
+    )
+    support_request.save()
+    messages.info(request, "Support request has been cancelled.")
+    return redirect("operations:support_request_detail", request_id=support_request.id)
+
+
+def _handle_approve_support_request(support_request, request):
+    """Handle approval of a support request"""
+    support_request.status = "APPROVED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get("response_notes", "")
+    support_request.approved_resources = request.POST.get("approved_resources", "")
+    support_request.save()
+    messages.success(request, "Support request approved.")
+
+
+def _handle_decline_support_request(support_request, request):
+    """Handle decline of a support request"""
+    support_request.status = "DECLINED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get("response_notes", "")
+    support_request.save()
+    messages.info(request, "Support request declined.")
+
+
+def _handle_create_incident_from_request(support_request, request):
+    """Create a new incident based on an approved support request"""
+    new_incident = Incident.objects.create(
+        name=f"Support for {support_request.related_incident.name}",
+        incident_type=support_request.related_incident.incident_type,
+        description=(
+            f"Supporting {support_request.requesting_organization.name} "
+            f"for {support_request.related_incident.name}"
+        ),
+        organization=support_request.target_organization,
+        owner=request.user,
+        incident_commander=request.user,
+        start_date=support_request.requested_start_date,
+        end_date=support_request.requested_end_date,
+        location=support_request.related_incident.location,
+        parent_incident=support_request.related_incident,
+        support_request=support_request,
+    )
+
+    # Create incident link
+    IncidentLink.objects.create(
+        from_incident=new_incident,
+        to_incident=support_request.related_incident,
+        relationship_type="SUPPORTS",
+        notes=f"Created from support request: {support_request.title}",
+        created_by=request.user,
+    )
+
+    support_request.status = "FULFILLED"
+    support_request.save()
+
+    messages.success(
+        request,
+        f"Created incident '{new_incident.name}' and linked it to the original incident.",
+    )
+    return redirect("operations:incident_detail", incident_id=new_incident.id)
+
+
 @login_required
 def support_request_detail(request, request_id):
     """View and manage a specific support request"""
@@ -838,68 +920,16 @@ def support_request_detail(request, request_id):
 
         # Handle cancel action (requesting organization members only)
         if action == "cancel" and can_cancel:
-            support_request.status = "CANCELLED"
-            support_request.reviewed_by = request.user
-            support_request.reviewed_at = timezone.now()
-            support_request.response_notes = request.POST.get(
-                "cancel_reason", "Request cancelled by requesting organization"
-            )
-            support_request.save()
-            messages.info(request, "Support request has been cancelled.")
-            return redirect("operations:support_request_detail", request_id=support_request.id)
+            return _handle_cancel_support_request(support_request, request)
 
         # Handle review actions (target organization members only)
         elif can_review:
             if action == "approve":
-                support_request.status = "APPROVED"
-                support_request.reviewed_by = request.user
-                support_request.reviewed_at = timezone.now()
-                support_request.response_notes = request.POST.get("response_notes", "")
-                support_request.approved_resources = request.POST.get("approved_resources", "")
-                support_request.save()
-                messages.success(request, "Support request approved.")
-
+                _handle_approve_support_request(support_request, request)
             elif action == "decline":
-                support_request.status = "DECLINED"
-                support_request.reviewed_by = request.user
-                support_request.reviewed_at = timezone.now()
-                support_request.response_notes = request.POST.get("response_notes", "")
-                support_request.save()
-                messages.info(request, "Support request declined.")
-
+                _handle_decline_support_request(support_request, request)
             elif action == "create_incident" and can_create_incident:
-                # Create a new incident based on this support request
-                new_incident = Incident.objects.create(
-                    name=f"Support for {support_request.related_incident.name}",
-                    incident_type=support_request.related_incident.incident_type,
-                    description=f"Supporting {support_request.requesting_organization.name} for {support_request.related_incident.name}",
-                    organization=support_request.target_organization,
-                    owner=request.user,
-                    incident_commander=request.user,
-                    start_date=support_request.requested_start_date,
-                    end_date=support_request.requested_end_date,
-                    location=support_request.related_incident.location,
-                    parent_incident=support_request.related_incident,
-                    support_request=support_request,
-                )
-
-            # Create incident link
-            IncidentLink.objects.create(
-                from_incident=new_incident,
-                to_incident=support_request.related_incident,
-                relationship_type="SUPPORTS",
-                notes=f"Created from support request: {support_request.title}",
-                created_by=request.user,
-            )
-
-            support_request.status = "FULFILLED"
-            support_request.save()
-
-            messages.success(
-                request,
-                f"Created incident '{new_incident.name}' and linked it to the original incident.",
-            )
-            return redirect("operations:incident_detail", incident_id=new_incident.id)
+                return _handle_create_incident_from_request(support_request, request)
 
         return redirect("operations:support_request_detail", request_id=support_request.id)
 

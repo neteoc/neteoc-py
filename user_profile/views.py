@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import Http404
+from django.http import Http404, HttpRequest
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -93,7 +93,7 @@ class UserRosterAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, user_id):
+    def get(self, request: HttpRequest, user_id: int) -> Response:
         """
         Get user roster information by user ID
 
@@ -122,7 +122,7 @@ class UserRosterAPIView(APIView):
             logger.warning(f"User {request.user.username} requested non-existent user ID {user_id}")
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"Unexpected error in UserRosterAPIView: {str(e)}")
+            logger.error(f"Unexpected error in UserRosterAPIView: {type(e).__name__}")
             return Response(
                 {"error": "An error occurred while retrieving user data"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -155,7 +155,7 @@ def view_public_profile(request, user_id):
     try:
         target_user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise Http404("User not found")
+        raise Http404("User not found") from None
     target_profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
     # Access control: must share org or be checked in to incident where target is commander
@@ -185,8 +185,9 @@ def view_public_profile(request, user_id):
             ).exists()
             if is_checked_in:
                 allowed = True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error checking incident commander access: {type(e).__name__}")
+            # Continue without this access check if there's an error
 
     # For other users, also check if the profile is set to be publicly visible
     if not allowed or (request.user != target_user and not target_profile.public_visible):

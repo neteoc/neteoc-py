@@ -163,7 +163,8 @@ class CheckInForm(ModelForm):
             if profile.roster_id:
                 self.cleaned_data["roster_id"] = profile.roster_id
                 logger.info(
-                    f"Auto-populated roster ID {profile.roster_id} for user {selected_user.username}"
+                    f"Auto-populated roster ID {profile.roster_id} "
+                    f"for user {selected_user.username}"
                 )
 
         # Auto-populate names if not already set
@@ -276,7 +277,10 @@ class SupportRequestForm(ModelForm):
         queryset=IncidentOrganization.objects.all(),
         required=True,
         empty_label="-- Select organization to request support from --",
-        help_text="The organization you want to request support from (cannot be the same as requesting organization)",
+        help_text=(
+            "The organization you want to request support from "
+            "(cannot be the same as requesting organization)"
+        ),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
 

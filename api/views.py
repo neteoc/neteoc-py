@@ -10,7 +10,7 @@ class APIRootView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
+    def get(self, request, response_format=None):
         """
         Return information about available API versions
         """
@@ -38,7 +38,7 @@ class APIv1RootView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
+    def get(self, request, response_format=None):
         """
         Return information about v1 API endpoints
         """

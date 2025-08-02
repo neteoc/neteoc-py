@@ -19,7 +19,7 @@ from loguru import logger
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
 
 def setup_loguru(logger, settings_dict):
@@ -344,3 +344,19 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"anon": "100/day", "user": "1000/day"},
     "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
 }
+
+# Security settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# Security settings for production (when not in DEBUG mode)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

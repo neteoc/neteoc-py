@@ -90,7 +90,10 @@ class IncidentAdmin(admin.ModelAdmin):
     active_checkins_display.short_description = "Currently Checked In"
 
     def save_model(self, request, obj, form, change):
-        """Auto-set created_by, owner, and organization to appropriate defaults when creating new incident"""
+        """
+        Auto-set created_by, owner, and organization to appropriate defaults
+        when creating new incident
+        """
         if not change:  # Only for new objects
             obj.created_by = request.user
             # If no owner is set, default to current user
@@ -187,7 +190,10 @@ class CheckInAdmin(admin.ModelAdmin):
     total_expenses.admin_order_field = "food_expenses"
 
     def get_queryset(self, request):
-        """Optimize queryset with select_related and apply organization-based permission filtering"""
+        """
+        Optimize queryset with select_related and apply organization-based
+        permission filtering
+        """
         qs = (
             super()
             .get_queryset(request)

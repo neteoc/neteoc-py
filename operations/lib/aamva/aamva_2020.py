@@ -12,12 +12,11 @@ class AAMVA_Header_Exception(Exception):
 
 
 def parse_pdf417_data(pdf_417_raw_data: typing.List[str]):
-    parsed_data_dict = dict()
+    parsed_data_dict = {}
 
-    parsed_data = list()
+    parsed_data = []
 
-    data_elements = set(
-        [
+    data_elements = {
             aamva_fields.JurisdictionSpecificVehicleClass(),
             aamva_fields.JurisdictionSpecificRestrictionCodes(),
             aamva_fields.JurisdictionSpecificEndorsementCodes(),
@@ -67,11 +66,10 @@ def parse_pdf417_data(pdf_417_raw_data: typing.List[str]):
             aamva_fields.Under21Until(),
             aamva_fields.OrganDonorIndicator(),
             aamva_fields.VeteranIndicator(),
-        ]
-    )
+    }
 
     for idx, data_element in enumerate(data_elements):
-        field_data = dict()
+        field_data = {}
 
         for line in pdf_417_raw_data:
             regex_matches = re.findall(data_element.get_regex(), line.strip())
@@ -88,7 +86,8 @@ def parse_pdf417_data(pdf_417_raw_data: typing.List[str]):
                 field_data["description"] = data_element.key_name
                 field_data["value"] = data_element.value
 
-                # Avoid adding the 'parsed' value field if its meaning is the same as the regular value
+                # Avoid adding the 'parsed' value field if its meaning
+                # is the same as the regular value
                 if parsed_value != data_element.value:
                     field_data["parsed_value"] = parsed_value
 
@@ -127,7 +126,8 @@ def parse_ansi_field(ansi_field_txt: str) -> dict:
         constants.AAMVA_VERSION_NUMBER_START_OFFSET : constants.AAMVA_VERSION_NUMBER_END_OFFSET
     ]
     jurisdiction_version_number = ansi_field_txt[
-        constants.JURISDICTION_VERSION_NUMBER_START_OFFSET : constants.JURISDICTION_VERSION_NUMBER_END_OFFSET
+        constants.JURISDICTION_VERSION_NUMBER_START_OFFSET:
+        constants.JURISDICTION_VERSION_NUMBER_END_OFFSET
     ]
     number_of_entries = ansi_field_txt[
         constants.NUMBER_OF_ENTRIES_START_OFFSET : constants.NUMBER_OF_ENTRIES_END_OFFSET
@@ -151,17 +151,15 @@ def parse_ansi_field(ansi_field_txt: str) -> dict:
         constants.LENGTH_2_FIELD_START_OFFSET : constants.LENGTH_2_FIELD_END_OFFSET
     ]
 
-    return dict(
-        {
-            "issuer_id_num": issuer_id_num,
-            "aamva_version_num": aamva_version_number,
-            "jurisdiction_version_number": jurisdiction_version_number,
-            "number_of_entries": number_of_entries,
-            "subfile_1_type": subfile_1_type,
-            "offset_1_field": offset_1_field,
-            "length_1": length_1_field,
-            "subfile_2_type": subfile_2_type,
-            "offset_2_field": offset_2_field,
-            "length_2": length_2_field,
-        }
-    )
+    return {
+        "issuer_id_num": issuer_id_num,
+        "aamva_version_num": aamva_version_number,
+        "jurisdiction_version_number": jurisdiction_version_number,
+        "number_of_entries": number_of_entries,
+        "subfile_1_type": subfile_1_type,
+        "offset_1_field": offset_1_field,
+        "length_1": length_1_field,
+        "subfile_2_type": subfile_2_type,
+        "offset_2_field": offset_2_field,
+        "length_2": length_2_field,
+    }
