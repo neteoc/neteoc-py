@@ -2,28 +2,38 @@
 set -e
 
 echo "Starting NetEOC container..."
+echo "Container environment variables:"
+echo "DJANGO_DEBUG: $DJANGO_DEBUG"
+echo "DATABASE_URL: ${DATABASE_URL:0:5}..." # Show first 5 chars for debugging
 
 # Function to wait for database
 wait_for_db() {
     echo "Waiting for database to be ready..."
-    local max_attempts=30
+    local max_attempts=5
     local attempt=1
 
     while [ $attempt -le $max_attempts ]; do
-        if python manage.py check --database default >/dev/null 2>&1; then
+        echo "Attempt $attempt/$max_attempts: Testing database connection..."
+
+        # Try to get more detailed error information
+        if python manage.py check --database default 2>&1; then
             echo "Database is ready!"
             break
+        else
+            echo "Database check failed. Error details above."
         fi
 
-        echo "Database not ready, attempt $attempt/$max_attempts. Waiting 2 seconds..."
-        sleep 2
+        if [ $attempt -eq $max_attempts ]; then
+            echo "Error: Database is not ready after $max_attempts attempts"
+            echo "Final attempt with verbose output:"
+            python manage.py check --database default
+            exit 1
+        fi
+
+        echo "Waiting 5 seconds before next attempt..."
+        sleep 5
         attempt=$((attempt + 1))
     done
-
-    if [ $attempt -gt $max_attempts ]; then
-        echo "Error: Database is not ready after $max_attempts attempts"
-        exit 1
-    fi
 }
 
 # Wait for database to be ready

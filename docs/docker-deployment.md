@@ -6,10 +6,22 @@ This document describes how to deploy NetEOC using Docker containers with automa
 
 The Docker container has been configured to automatically:
 
-1. Wait for the database to be ready
-2. Run database migrations on startup
-3. Collect static files
-4. Start the Django application
+1. Install GeoDjango dependencies (GDAL, GEOS, PROJ, SpatiaLite)
+2. Wait for the database to be ready
+3. Run database migrations on startup
+4. Collect static files
+5. Start the Django application
+
+## GeoDjango Requirements
+
+NetEOC uses GeoDjango for geographic functionality, which requires several system libraries:
+
+- **GDAL** (Geospatial Data Abstraction Library)
+- **GEOS** (Geometry Engine - Open Source)
+- **PROJ** (Cartographic Projections Library)
+- **SpatiaLite** (Spatial extension for SQLite)
+
+These are automatically installed in the Docker container.
 
 ## Building the Image
 
