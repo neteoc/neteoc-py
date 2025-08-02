@@ -28,9 +28,9 @@
                         <input type="hidden" name="form_type" value="profile">
                         <div class="row mb-3">
                             <div class="col-sm-3">
-                                <label class="form-label">
+                                <div class="form-label">
                                     <strong>Username:</strong>
-                                </label>
+                                </div>
                             </div>
                             <div class="col-sm-9">
                                 <p class="form-control-plaintext">{{ user.username }}</p>
@@ -39,9 +39,9 @@
                         {% if user.first_name or user.last_name %}
                             <div class="row mb-3">
                                 <div class="col-sm-3">
-                                    <label class="form-label">
+                                    <div class="form-label">
                                         <strong>Full Name:</strong>
-                                    </label>
+                                    </div>
                                 </div>
                                 <div class="col-sm-9">
                                     <p class="form-control-plaintext">{{ user.first_name }} {{ user.last_name }}</p>
@@ -51,9 +51,9 @@
                         {% if user.email %}
                             <div class="row mb-3">
                                 <div class="col-sm-3">
-                                    <label class="form-label">
+                                    <div class="form-label">
                                         <strong>Email:</strong>
-                                    </label>
+                                    </div>
                                 </div>
                                 <div class="col-sm-9">
                                     <p class="form-control-plaintext">{{ user.email }}</p>

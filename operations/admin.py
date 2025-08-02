@@ -16,6 +16,10 @@ from .models import (
     TimeEntry,
 )
 
+# Constants to avoid string duplication
+BASIC_INFORMATION = "Basic Information"
+SYSTEM_INFO = "System Info"
+
 
 @admin.register(Incident)
 class IncidentAdmin(admin.ModelAdmin):
@@ -57,7 +61,7 @@ class IncidentAdmin(admin.ModelAdmin):
     ]
 
     fieldsets = (
-        ("Basic Information", {"fields": ("name", "incident_type", "description", "status")}),
+        (BASIC_INFORMATION, {"fields": ("name", "incident_type", "description", "status")}),
         ("Organization", {"fields": ("organization",)}),
         ("Dates & Location", {"fields": ("start_date", "end_date", "location")}),
         ("Management", {"fields": ("owner", "incident_commander", "created_by")}),
@@ -68,7 +72,7 @@ class IncidentAdmin(admin.ModelAdmin):
                 "classes": ("collapse",),
             },
         ),
-        ("System Info", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
 
     def total_checkins_display(self, obj):
@@ -245,8 +249,8 @@ class IncidentOrganizationAdmin(admin.ModelAdmin):
     readonly_fields = ["created", "modified"]
 
     fieldsets = (
-        ("Basic Information", {"fields": ("name", "organization_type", "is_active")}),
-        ("System Info", {"fields": ("created", "modified"), "classes": ("collapse",)}),
+        (BASIC_INFORMATION, {"fields": ("name", "organization_type", "is_active")}),
+        (SYSTEM_INFO, {"fields": ("created", "modified"), "classes": ("collapse",)}),
     )
 
 
@@ -259,7 +263,7 @@ class IncidentOrganizationUserAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("User Assignment", {"fields": ("user", "organization", "role", "is_admin")}),
-        ("System Info", {"fields": ("created", "modified"), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("created", "modified"), "classes": ("collapse",)}),
     )
 
     def get_queryset(self, request):
@@ -311,7 +315,7 @@ class IncidentOrganizationInvitationAdmin(admin.ModelAdmin):
             "Invitation Details",
             {"fields": ("invitee_identifier", "organization", "role", "invited_by")},
         ),
-        ("System Info", {"fields": ("guid", "created", "modified"), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("guid", "created", "modified"), "classes": ("collapse",)}),
     )
 
     def get_queryset(self, request):
@@ -365,7 +369,7 @@ class SupportRequestAdmin(admin.ModelAdmin):
         ("Management", {"fields": ("requested_by", "reviewed_by", "status")}),
         ("Response", {"fields": ("response_notes", "approved_resources")}),
         (
-            "System Info",
+            SYSTEM_INFO,
             {"fields": ("created_at", "updated_at", "reviewed_at"), "classes": ("collapse",)},
         ),
     )
@@ -429,7 +433,7 @@ class IncidentLinkAdmin(admin.ModelAdmin):
             {"fields": ("from_incident", "relationship_type", "to_incident")},
         ),
         ("Details", {"fields": ("notes", "created_by")}),
-        ("System Info", {"fields": ("created_at",), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("created_at",), "classes": ("collapse",)}),
     )
 
     def get_queryset(self, request):
@@ -478,7 +482,7 @@ class AssetCategoryAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Category Information", {"fields": ("name", "description")}),
         ("Requirements", {"fields": ("requires_license", "requires_training")}),
-        ("System Info", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
 
 
@@ -512,7 +516,7 @@ class AssetAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
 
     fieldsets = (
-        ("Basic Information", {"fields": ("identifier", "name", "description", "category")}),
+        (BASIC_INFORMATION, {"fields": ("identifier", "name", "description", "category")}),
         (
             "Ownership & Location",
             {"fields": ("organization", "current_holder", "current_incident")},
@@ -537,7 +541,7 @@ class AssetAdmin(admin.ModelAdmin):
             "Vehicle-Specific",
             {"fields": ("license_plate", "vin", "fuel_type"), "classes": ("collapse",)},
         ),
-        ("System Info", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+        (SYSTEM_INFO, {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
 
     def get_queryset(self, request):
@@ -714,7 +718,7 @@ class TimeEntryAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at", "total_hours_display", "total_costs_display"]
     
     fieldsets = [
-        ("Basic Information", {
+        (BASIC_INFORMATION, {
             "fields": ("user", "organization", "incident", "date", "activity_description")
         }),
         ("Time Tracking", {
@@ -727,7 +731,7 @@ class TimeEntryAdmin(admin.ModelAdmin):
             "fields": ("total_hours_display", "total_costs_display"),
             "classes": ("collapse",)
         }),
-        ("System Info", {
+        (SYSTEM_INFO, {
             "fields": ("created_at", "updated_at"),
             "classes": ("collapse",)
         }),

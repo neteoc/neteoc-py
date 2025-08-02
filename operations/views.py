@@ -37,6 +37,25 @@ from .tables import CheckInTable
 
 from logging import getLogger
 
+# URL name constants to avoid duplication
+ORGANIZATION_LIST_URL = "operations:organization_list"
+TIME_ENTRY_LIST_URL = "operations:time_entry_list"
+DASHBOARD_URL = "operations:dashboard"
+ORGANIZATION_DETAIL_URL = "operations:organization_detail"
+ORGANIZATION_PUBLIC_PROFILE_URL = "operations:organization_public_profile"
+INCIDENT_DETAIL_URL = "operations:incident_detail"
+ASSET_DETAIL_URL = "operations:asset_detail"
+CHECKIN_INDEX_URL = "operations:checkin_index"
+CHECKIN_REPORT_URL = "operations:checkin_report"
+SUPPORT_REQUESTS_LIST_URL = "operations:support_requests_list"
+SUPPORT_REQUEST_DETAIL_URL = "operations:support_request_detail"
+ASSET_LIST_URL = "operations:asset_list"
+ASSET_CATEGORY_LIST_URL = "operations:asset_category_list"
+TIME_ENTRY_DETAIL_URL = "operations:time_entry_detail"
+
+# Error message constants
+NO_ACCESS_ORGANIZATION_MSG = "You don't have access to this organization."
+
 logger = getLogger(__name__)
 
 
@@ -289,7 +308,7 @@ def new(request, incident_id):
     # Check if user has write access to this incident
     if not incident.has_write_access(request.user):
         messages.error(request, "You don't have permission to check-in to this incident.")
-        return redirect("operations:checkin_index")
+        return redirect(CHECKIN_INDEX_URL)
 
     context["incident"] = incident
 
@@ -305,7 +324,7 @@ def new(request, incident_id):
                 f"Check-in successful for {checkin.first_name} {checkin.last_name} "
                 f"into {incident.name}",
             )
-            return redirect("operations:checkin_index")
+            return redirect(CHECKIN_INDEX_URL)
         else:
             context["form"] = details  # Pass the form with errors back to the template
 
@@ -376,54 +395,55 @@ def checkout(request, pk):
         )
 
     # Redirect back to the report page
-    return redirect("operations:checkin_report")
+    return redirect(CHECKIN_REPORT_URL)
+
+
+@login_required()
+def _get_current_organization(request):
+    """Helper to get current organization from session"""
+    current_org_id = request.session.get("current_organization_id")
+    if current_org_id:
+        try:
+            return IncidentOrganization.objects.get(id=current_org_id)
+        except IncidentOrganization.DoesNotExist:
+            request.session.pop("current_organization_id", None)
+    return None
+
+
+def _check_incident_creation_permission(user, current_organization):
+    """Helper to check if user can create incidents and return default org"""
+    if user.is_superuser:
+        return True, current_organization
+
+    # Check permission in current organization
+    if current_organization:
+        try:
+            membership = IncidentOrganizationUser.objects.get(
+                user=user, organization=current_organization
+            )
+            if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+                return True, current_organization
+        except IncidentOrganizationUser.DoesNotExist:
+            pass
+
+    # Check if user has permission in any organization
+    user_org_memberships = IncidentOrganizationUser.objects.filter(user=user)
+    for membership in user_org_memberships:
+        if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
+            return True, membership.organization
+
+    return False, None
 
 
 @login_required()
 def create_incident(request):
     """Create a new incident"""
-    # Get current organization from session
-    current_org_id = request.session.get("current_organization_id")
-    current_organization = None
-    if current_org_id:
-        try:
-            current_organization = IncidentOrganization.objects.get(id=current_org_id)
-        except IncidentOrganization.DoesNotExist:
-            request.session.pop("current_organization_id", None)
-
-    # Check if user has permission to create incidents (ADMIN or INCIDENT_MANAGER role)
-    can_create = False
-    default_org = None
-
-    if request.user.is_superuser:
-        can_create = True
-        default_org = current_organization
-    else:
-        if current_organization:
-            # Check permission in current organization
-            try:
-                membership = IncidentOrganizationUser.objects.get(
-                    user=request.user, organization=current_organization
-                )
-                if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
-                    can_create = True
-                    default_org = current_organization
-            except IncidentOrganizationUser.DoesNotExist:
-                pass
-
-        if not can_create:
-            # Check if user has permission in any organization
-            user_org_memberships = IncidentOrganizationUser.objects.filter(user=request.user)
-            for membership in user_org_memberships:
-                if membership.role in ["ADMIN", "INCIDENT_MANAGER"]:
-                    can_create = True
-                    if not default_org:
-                        default_org = membership.organization
-                    break
+    current_organization = _get_current_organization(request)
+    can_create, default_org = _check_incident_creation_permission(request.user, current_organization)
 
     if not can_create:
         messages.error(request, "You don't have permission to create incidents.")
-        return redirect("operations:dashboard")
+        return redirect(DASHBOARD_URL)
 
     if request.method == "POST":
         form = IncidentForm(request.POST)
@@ -439,7 +459,7 @@ def create_incident(request):
             incident.save()
 
             messages.success(request, f"Incident '{incident.name}' has been created successfully!")
-            return redirect("operations:dashboard")
+            return redirect(DASHBOARD_URL)
     else:
         form = IncidentForm()
         # If there's a default organization, pre-select it
@@ -461,7 +481,7 @@ def incident_detail(request, incident_id):
     # Check if user has read access to this incident
     if not incident.has_read_access(request.user):
         messages.error(request, "You don't have permission to view this incident.")
-        return redirect("operations:dashboard")
+        return redirect(DASHBOARD_URL)
 
     # Get recent check-ins for this incident
     recent_checkins = (
@@ -503,8 +523,8 @@ def organization_detail(request, org_id):
         )
         organization = user_membership.organization
     except IncidentOrganizationUser.DoesNotExist:
-        messages.error(request, "You don't have access to this organization.")
-        return redirect("operations:organization_list")
+        messages.error(request, NO_ACCESS_ORGANIZATION_MSG)
+        return redirect(ORGANIZATION_LIST_URL)
 
     # Get all members of this organization
     members = IncidentOrganizationUser.objects.filter(organization=organization).select_related(
@@ -530,22 +550,50 @@ def organization_detail(request, org_id):
 
 
 @login_required()
+def _check_invitation_permission(user, org_id):
+    """Helper to check if user can invite others to organization"""
+    try:
+        user_membership = IncidentOrganizationUser.objects.get(
+            user=user, organization_id=org_id
+        )
+        if user_membership.role not in ["ADMIN", "INCIDENT_MANAGER"]:
+            return False, None, "You don't have permission to invite users to this organization."
+        return True, user_membership.organization, None
+    except IncidentOrganizationUser.DoesNotExist:
+        return False, None, NO_ACCESS_ORGANIZATION_MSG
+
+
+def _validate_invitation_request(email, organization):
+    """Helper to validate invitation request"""
+    # Check if user already exists in organization
+    existing_user = User.objects.filter(email=email).first()
+    if existing_user:
+        existing_membership = IncidentOrganizationUser.objects.filter(
+            user=existing_user, organization=organization
+        ).exists()
+        if existing_membership:
+            return False, f"User {email} is already a member of this organization."
+
+    # Check if invitation already exists
+    existing_invitation = IncidentOrganizationInvitation.objects.filter(
+        invitee_identifier=email, organization=organization
+    ).exists()
+    if existing_invitation:
+        return False, f"An invitation has already been sent to {email}."
+
+    return True, None
+
+
+@login_required()
 def invite_user(request, org_id):
     """Invite a user to join an organization"""
     # Check if user has permission to invite
-    try:
-        user_membership = IncidentOrganizationUser.objects.get(
-            user=request.user, organization_id=org_id
-        )
-        if user_membership.role not in ["ADMIN", "INCIDENT_MANAGER"]:
-            messages.error(
-                request, "You don't have permission to invite users to this organization."
-            )
-            return redirect("operations:organization_detail", org_id=org_id)
-        organization = user_membership.organization
-    except IncidentOrganizationUser.DoesNotExist:
-        messages.error(request, "You don't have access to this organization.")
-        return redirect("operations:organization_list")
+    has_permission, organization, error_msg = _check_invitation_permission(request.user, org_id)
+    if not has_permission:
+        messages.error(request, error_msg)
+        if "access" in error_msg.lower():
+            return redirect(ORGANIZATION_LIST_URL)
+        return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
 
     if request.method == "POST":
         form = InviteUserForm(request.POST)
@@ -553,25 +601,11 @@ def invite_user(request, org_id):
             email = form.cleaned_data["invitee_identifier"]
             role = form.cleaned_data["role"]
 
-            # Check if user already exists in organization
-            existing_user = User.objects.filter(email=email).first()
-            if existing_user:
-                existing_membership = IncidentOrganizationUser.objects.filter(
-                    user=existing_user, organization=organization
-                ).exists()
-                if existing_membership:
-                    messages.error(
-                        request, f"User {email} is already a member of this organization."
-                    )
-                    return redirect("operations:organization_detail", org_id=org_id)
-
-            # Check if invitation already exists
-            existing_invitation = IncidentOrganizationInvitation.objects.filter(
-                invitee_identifier=email, organization=organization
-            ).exists()
-            if existing_invitation:
-                messages.error(request, f"An invitation has already been sent to {email}.")
-                return redirect("operations:organization_detail", org_id=org_id)
+            # Validate invitation request
+            is_valid, validation_error = _validate_invitation_request(email, organization)
+            if not is_valid:
+                messages.error(request, validation_error)
+                return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
 
             # Create invitation
             IncidentOrganizationInvitation.objects.create(
@@ -582,7 +616,7 @@ def invite_user(request, org_id):
             )
 
             messages.success(request, f"Invitation sent to {email} successfully!")
-            return redirect("operations:organization_detail", org_id=org_id)
+            return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
     else:
         form = InviteUserForm()
 
@@ -604,11 +638,11 @@ def manage_user_role(request, org_id, user_id):
         )
         if current_user_membership.role != "ADMIN":
             messages.error(request, "Only organization admins can manage user roles.")
-            return redirect("operations:organization_detail", org_id=org_id)
+            return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
         organization = current_user_membership.organization
     except IncidentOrganizationUser.DoesNotExist:
-        messages.error(request, "You don't have access to this organization.")
-        return redirect("operations:organization_list")
+        messages.error(request, NO_ACCESS_ORGANIZATION_MSG)
+        return redirect(ORGANIZATION_LIST_URL)
 
     # Get the user membership to manage
     try:
@@ -617,12 +651,12 @@ def manage_user_role(request, org_id, user_id):
         )
     except IncidentOrganizationUser.DoesNotExist:
         messages.error(request, "User is not a member of this organization.")
-        return redirect("operations:organization_detail", org_id=org_id)
+        return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
 
     # Prevent self-demotion
     if user_membership.user == request.user:
         messages.error(request, "You cannot change your own role.")
-        return redirect("operations:organization_detail", org_id=org_id)
+        return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
 
     if request.method == "POST":
         form = ManageUserRoleForm(request.POST, instance=user_membership)
@@ -632,7 +666,7 @@ def manage_user_role(request, org_id, user_id):
                 request,
                 f"Updated role for {user_membership.user.get_full_name() or user_membership.user.username}",
             )
-            return redirect("operations:organization_detail", org_id=org_id)
+            return redirect(ORGANIZATION_DETAIL_URL, org_id=org_id)
     else:
         form = ManageUserRoleForm(instance=user_membership)
 
@@ -684,12 +718,12 @@ def request_support(request, org_id):
     )
     if not user_orgs.exists():
         messages.error(request, "You must be a member of an organization to request support.")
-        return redirect("operations:organization_public_profile", org_id=org_id)
+        return redirect(ORGANIZATION_PUBLIC_PROFILE_URL, org_id=org_id)
 
     # Prevent requesting support from own organization
     if target_organization.id in user_orgs:
         messages.error(request, "You cannot request support from your own organization.")
-        return redirect("operations:organization_public_profile", org_id=org_id)
+        return redirect(ORGANIZATION_PUBLIC_PROFILE_URL, org_id=org_id)
 
     if request.method == "POST":
         form = SupportRequestForm(request.POST, user=request.user)
@@ -705,7 +739,7 @@ def request_support(request, org_id):
                 f"Support request sent to {target_organization.name}. "
                 f"You will be notified when they respond.",
             )
-            return redirect("operations:organization_public_profile", org_id=org_id)
+            return redirect(ORGANIZATION_PUBLIC_PROFILE_URL, org_id=org_id)
     else:
         form = SupportRequestForm(user=request.user)
 
@@ -725,7 +759,7 @@ def request_support_for_incident(request, incident_id):
     # Check if user has access to this incident
     if not incident.has_read_access(request.user):
         messages.error(request, "You don't have permission to view this incident.")
-        return redirect("operations:dashboard")
+        return redirect(DASHBOARD_URL)
 
     # Check user has organization membership
     user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
@@ -733,7 +767,7 @@ def request_support_for_incident(request, incident_id):
     )
     if not user_orgs.exists():
         messages.error(request, "You must be a member of an organization to request support.")
-        return redirect("operations:incident_detail", incident_id=incident_id)
+        return redirect(INCIDENT_DETAIL_URL, incident_id=incident_id)
 
     # Determine the requesting organization (current organization context or first org)
     current_org_id = request.session.get("current_organization_id")
@@ -768,7 +802,7 @@ def request_support_for_incident(request, incident_id):
                 f"Support request sent to {support_request.target_organization.name} for incident '{incident.name}'. "
                 f"You will be notified when they respond.",
             )
-            return redirect("operations:incident_detail", incident_id=incident_id)
+            return redirect(INCIDENT_DETAIL_URL, incident_id=incident_id)
     else:
         # Pre-populate the form with incident information
         initial_data = {
@@ -803,7 +837,7 @@ def support_requests_list(request):
         messages.warning(
             request, "You must be a member of an organization to view support requests."
         )
-        return redirect("operations:dashboard")
+        return redirect(DASHBOARD_URL)
 
     # Check if user has a current organization context
     current_org_id = request.session.get("current_organization_id")
@@ -858,7 +892,7 @@ def support_request_detail(request, request_id):
 
     if not has_access:
         messages.error(request, "You don't have access to this support request.")
-        return redirect("operations:support_requests_list")
+        return redirect(SUPPORT_REQUESTS_LIST_URL)
 
     # Check if user can review (target organization member)
     can_review = support_request.target_organization_id in user_orgs
@@ -883,7 +917,7 @@ def support_request_detail(request, request_id):
             )
             support_request.save()
             messages.info(request, "Support request has been cancelled.")
-            return redirect("operations:support_request_detail", request_id=support_request.id)
+            return redirect(SUPPORT_REQUEST_DETAIL_URL, request_id=support_request.id)
 
         # Handle review actions (target organization members only)
         elif can_review:
@@ -936,9 +970,9 @@ def support_request_detail(request, request_id):
                 request,
                 f"Created incident '{new_incident.name}' and linked it to the original incident.",
             )
-            return redirect("operations:incident_detail", incident_id=new_incident.id)
+            return redirect(INCIDENT_DETAIL_URL, incident_id=new_incident.id)
 
-        return redirect("operations:support_request_detail", request_id=support_request.id)
+        return redirect(SUPPORT_REQUEST_DETAIL_URL, request_id=support_request.id)
 
     context = {
         "support_request": support_request,
@@ -963,7 +997,7 @@ def switch_organization(request, org_id):
             user=request.user, organization=organization
         ).exists():
             messages.error(request, "You don't have access to that organization.")
-            return redirect("operations:dashboard")
+            return redirect(DASHBOARD_URL)
 
         # Set the current organization in session
         request.session["current_organization_id"] = org_id
@@ -973,7 +1007,7 @@ def switch_organization(request, org_id):
         messages.error(request, "Organization not found.")
 
     # Redirect back to where they came from, or dashboard
-    return redirect(request.META.get("HTTP_REFERER", "operations:dashboard"))
+    return redirect(request.META.get("HTTP_REFERER", DASHBOARD_URL))
 
 
 @login_required
@@ -987,7 +1021,7 @@ def clear_organization(request):
     )
 
     # Redirect back to where they came from, or dashboard
-    return redirect(request.META.get("HTTP_REFERER", "operations:dashboard"))
+    return redirect(request.META.get("HTTP_REFERER", DASHBOARD_URL))
 
 
 # Asset Management Views
@@ -1009,7 +1043,7 @@ def asset_list(request):
             assets = Asset.objects.filter(organization=current_organization)
         else:
             assets = Asset.objects.none()
-            messages.error(request, "You don't have access to this organization.")
+            messages.error(request, NO_ACCESS_ORGANIZATION_MSG)
     else:
         # Show assets from all user's organizations
         assets = Asset.objects.filter(organization__in=user_orgs)
@@ -1037,7 +1071,7 @@ def asset_detail(request, asset_id):
         IncidentOrganizationUser.objects.get(organization=asset.organization, user=request.user)
     except IncidentOrganizationUser.DoesNotExist:
         messages.error(request, "You don't have access to this asset.")
-        return redirect("operations:asset_list")
+        return redirect(ASSET_LIST_URL)
 
     # Get checkout history
     checkouts = (
@@ -1079,7 +1113,7 @@ def asset_create(request):
         if form.is_valid():
             asset = form.save()
             messages.success(request, f"Asset {asset.identifier} created successfully.")
-            return redirect("operations:asset_detail", asset_id=asset.id)
+            return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
     else:
         form = AssetForm(user=request.user)
 
@@ -1097,14 +1131,14 @@ def asset_edit(request, asset_id):
     # Check if user can manage this asset
     if not asset.can_user_manage(request.user):
         messages.error(request, "You don't have permission to edit this asset.")
-        return redirect("operations:asset_detail", asset_id=asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
 
     if request.method == "POST":
         form = AssetForm(request.POST, instance=asset, user=request.user)
         if form.is_valid():
             asset = form.save()
             messages.success(request, f"Asset {asset.identifier} updated successfully.")
-            return redirect("operations:asset_detail", asset_id=asset.id)
+            return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
     else:
         form = AssetForm(instance=asset, user=request.user)
 
@@ -1122,11 +1156,11 @@ def asset_checkout(request, asset_id):
     # Check if user can checkout this asset
     if not asset.can_user_checkout(request.user) and not asset.can_user_manage(request.user):
         messages.error(request, "You don't have permission to checkout this asset.")
-        return redirect("operations:asset_detail", asset_id=asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
 
     if not asset.is_available:
         messages.error(request, "This asset is not available for checkout.")
-        return redirect("operations:asset_detail", asset_id=asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
 
     if request.method == "POST":
         form = AssetCheckoutForm(request.POST, user=request.user, asset=asset)
@@ -1140,7 +1174,7 @@ def asset_checkout(request, asset_id):
                 request,
                 f"Asset {asset.identifier} checkout initiated. Waiting for {checkout.checked_out_to.get_full_name() or checkout.checked_out_to.username} to accept.",
             )
-            return redirect("operations:asset_detail", asset_id=asset.id)
+            return redirect(ASSET_DETAIL_URL, asset_id=asset.id)
     else:
         form = AssetCheckoutForm(user=request.user, asset=asset)
 
@@ -1157,7 +1191,7 @@ def asset_accept_checkout(request, checkout_id):
 
     if not checkout.can_user_accept(request.user):
         messages.error(request, "You cannot accept this checkout.")
-        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
 
     if request.method == "POST":
         form = AssetAcceptForm(request.POST)
@@ -1171,7 +1205,7 @@ def asset_accept_checkout(request, checkout_id):
                 messages.success(request, f"Asset {checkout.asset.identifier} checkout accepted.")
             except ValueError as e:
                 messages.error(request, str(e))
-            return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+            return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
     else:
         form = AssetAcceptForm()
 
@@ -1192,7 +1226,7 @@ def asset_checkin(request, checkout_id):
 
     if not checkout.can_user_checkin(request.user):
         messages.error(request, "You cannot check in this asset.")
-        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
 
     if request.method == "POST":
         form = AssetCheckinForm(request.POST)
@@ -1209,7 +1243,7 @@ def asset_checkin(request, checkout_id):
                 )
             except ValueError as e:
                 messages.error(request, str(e))
-            return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+            return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
     else:
         form = AssetCheckinForm()
 
@@ -1230,7 +1264,7 @@ def asset_cancel_checkout(request, checkout_id):
 
     if not checkout.can_user_cancel(request.user):
         messages.error(request, "You cannot cancel this checkout.")
-        return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+        return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
 
     try:
         checkout.cancel_checkout(request.user)
@@ -1240,7 +1274,7 @@ def asset_cancel_checkout(request, checkout_id):
     except ValueError as e:
         messages.error(request, str(e))
 
-    return redirect("operations:asset_detail", asset_id=checkout.asset.id)
+    return redirect(ASSET_DETAIL_URL, asset_id=checkout.asset.id)
 
 
 @login_required
@@ -1266,14 +1300,14 @@ def asset_category_create(request):
 
     if not user_admin_orgs and not request.user.is_superuser:
         messages.error(request, "You don't have permission to create asset categories.")
-        return redirect("operations:asset_category_list")
+        return redirect(ASSET_CATEGORY_LIST_URL)
 
     if request.method == "POST":
         form = AssetCategoryForm(request.POST)
         if form.is_valid():
             category = form.save()
             messages.success(request, f"Asset category '{category.name}' created successfully.")
-            return redirect("operations:asset_category_list")
+            return redirect(ASSET_CATEGORY_LIST_URL)
     else:
         form = AssetCategoryForm()
 
@@ -1315,7 +1349,7 @@ def time_entry_list(request):
     current_org = get_current_organization(request)
     if not current_org:
         messages.error(request, "Please select an organization first.")
-        return redirect("operations:organization_list")
+        return redirect(ORGANIZATION_LIST_URL)
     
     # Get time entries for current user and organization
     time_entries = TimeEntry.objects.filter(
@@ -1336,7 +1370,7 @@ def time_entry_create(request):
     current_org = get_current_organization(request)
     if not current_org:
         messages.error(request, "Please select an organization first.")
-        return redirect("operations:organization_list")
+        return redirect(ORGANIZATION_LIST_URL)
     
     if request.method == "POST":
         form = TimeEntryForm(request.POST, user=request.user)
@@ -1347,11 +1381,11 @@ def time_entry_create(request):
             # Ensure the organization is one the user belongs to
             if time_entry.organization not in IncidentOrganization.objects.filter(users=request.user):
                 messages.error(request, "You don't have permission to log time for that organization.")
-                return redirect("operations:time_entry_list")
+                return redirect(TIME_ENTRY_LIST_URL)
             
             time_entry.save()
             messages.success(request, "Time entry created successfully.")
-            return redirect("operations:time_entry_detail", entry_id=time_entry.id)
+            return redirect(TIME_ENTRY_DETAIL_URL, entry_id=time_entry.id)
     else:
         form = TimeEntryForm(user=request.user, initial={'organization': current_org})
     
@@ -1370,7 +1404,7 @@ def time_entry_detail(request, entry_id):
     # Check permissions - users can only view their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to view this time entry.")
-        return redirect("operations:time_entry_list")
+        return redirect(TIME_ENTRY_LIST_URL)
     
     context = {
         "time_entry": time_entry,
@@ -1386,14 +1420,14 @@ def time_entry_edit(request, entry_id):
     # Check permissions - users can only edit their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to edit this time entry.")
-        return redirect("operations:time_entry_list")
+        return redirect(TIME_ENTRY_LIST_URL)
     
     if request.method == "POST":
         form = TimeEntryForm(request.POST, instance=time_entry, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Time entry updated successfully.")
-            return redirect("operations:time_entry_detail", entry_id=time_entry.id)
+            return redirect(TIME_ENTRY_DETAIL_URL, entry_id=time_entry.id)
     else:
         form = TimeEntryForm(instance=time_entry, user=request.user)
     
@@ -1412,12 +1446,12 @@ def time_entry_delete(request, entry_id):
     # Check permissions - users can only delete their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to delete this time entry.")
-        return redirect("operations:time_entry_list")
+        return redirect(TIME_ENTRY_LIST_URL)
     
     if request.method == "POST":
         time_entry.delete()
         messages.success(request, "Time entry deleted successfully.")
-        return redirect("operations:time_entry_list")
+        return redirect(TIME_ENTRY_LIST_URL)
     
     context = {
         "time_entry": time_entry,
