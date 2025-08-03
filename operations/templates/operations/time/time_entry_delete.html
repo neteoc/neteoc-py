@@ -49,7 +49,7 @@
                             {% if time_entry.travel_meal_costs or time_entry.billeting_costs or time_entry.purchases %}
                                 <hr>
                                 <p><strong>Total Costs:</strong> 
-                                    ${{ time_entry.travel_meal_costs|add:time_entry.billeting_costs|add:time_entry.purchases|divisibleby:100|floatformat:2 }}
+                                    ${{ time_entry.travel_meal_costs|add:time_entry.billeting_costs|add:time_entry.purchases|floatformat:2 }}
                                 </p>
                             {% endif %}
                         </div>
