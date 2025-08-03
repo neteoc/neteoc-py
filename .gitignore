@@ -1,4 +1,6 @@
 .env
+.env.*
+.env.production
 *.sqlite*
 *.log
 static/*
