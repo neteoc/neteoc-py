@@ -33,3 +33,6 @@ run:
 build:
     podman build . -t neteoc/web
     podman push neteoc/web:latest
+
+safe:
+    uv run safety scan
