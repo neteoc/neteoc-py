@@ -33,6 +33,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "bandit>=1.8.6",
     "black>=25.1.0",
     "cookiecutter>=2.6.0",
     "djlint>=1.36.4",
