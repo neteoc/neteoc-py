@@ -70,7 +70,7 @@ The system captures all fields required by the copilot instructions:
 - **Date**: When the work was performed
 - **Activity Description**: Details of work done
 - **Work Hours**: Paid work time
-- **Volunteer Hours**: Unpaid volunteer time  
+- **Volunteer Hours**: Unpaid volunteer time
 - **Travel Hours**: Time spent traveling
 - **Travel Miles**: Distance traveled
 - **Travel Meal Costs**: Food expenses
@@ -80,7 +80,7 @@ The system captures all fields required by the copilot instructions:
 
 ### 🎯 Workflow Example
 
-1. **Start from Dashboard**: Go to `/operations/` 
+1. **Start from Dashboard**: Go to `/operations/`
 2. **Access Time Tracking**: Click the "Time Tracking" button
 3. **View Existing Entries**: See your time log for current organization
 4. **Create New Entry**: Click "New Time Entry"

@@ -94,8 +94,8 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            {% bootstrap_button button_type="link" content="View All Reports" button_class="btn-outline-secondary" href="/operations/checkin/report/" %}
-                            {% bootstrap_button button_type="link" content="Manage Profile" button_class="btn-outline-info" href="/profile/" %}
+                            {% bootstrap_button button_type="link" content="View All Reports" button_class="btn-outline-secondary" href="{% url 'operations:checkin_report' %}" %}
+                            {% bootstrap_button button_type="link" content="Manage Profile" button_class="btn-outline-info" href="{% url 'user_profile:profile' %}" %}
                         </div>
                         <hr>
                         <p class="small text-muted mb-0">

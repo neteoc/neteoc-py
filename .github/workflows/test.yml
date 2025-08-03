@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  security-events: write
+
 env:
   DJANGO_SETTINGS_MODULE: neteoc.settings
   DJANGO_DEBUG: false
@@ -15,7 +21,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         python-version: ["3.12"]
@@ -99,7 +105,7 @@ jobs:
 
   test-postgres:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgis/postgis:17-3.5
@@ -173,7 +179,7 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

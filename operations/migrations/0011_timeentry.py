@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("operations", "0010_assetcategory_asset_assetcheckout"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

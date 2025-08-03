@@ -27,7 +27,7 @@ class Command(BaseCommand):
     USERNAME_JENNIFER_GARCIA = "jennifer.garcia"
     USERNAME_ROBERT_MARTINEZ = "robert.martinez"
     USERNAME_MARIA_RODRIGUEZ = "maria.rodriguez"
-    
+
     INCIDENT_HURRICANE_2025 = "Demo Hurricane Response 2025"
     CATEGORY_MEDICAL_EQUIPMENT = "Medical Equipment"
 
@@ -494,7 +494,9 @@ class Command(BaseCommand):
             "Radios": AssetCategory.objects.get(name="Radios"),
             "Vehicles": AssetCategory.objects.get(name="Vehicles"),
             "Laptops": AssetCategory.objects.get(name="Laptops"),
-            self.CATEGORY_MEDICAL_EQUIPMENT: AssetCategory.objects.get(name=self.CATEGORY_MEDICAL_EQUIPMENT),
+            self.CATEGORY_MEDICAL_EQUIPMENT: AssetCategory.objects.get(
+                name=self.CATEGORY_MEDICAL_EQUIPMENT
+            ),
             "Generators": AssetCategory.objects.get(name="Generators"),
         }
 

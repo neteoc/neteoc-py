@@ -178,7 +178,7 @@ For production deployments, use the production environment configuration:
    ```bash
    # Using the helper script (recommended)
    ./scripts/check-production-deploy.sh
-   
+
    # Or manually with your production .env file
    cp .env.production.local .env
    uv run python manage.py check --deploy

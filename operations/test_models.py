@@ -20,6 +20,7 @@ from .models import (
     IncidentOrganization,
     IncidentOrganizationUser,
     Incident,
+    AssetCategory,
     Asset,
     TimeEntry,
     SupportRequest,
@@ -43,12 +44,12 @@ class IncidentOrganizationModelTest(TestCase):
 
     def test_organization_creation(self):
         """Test organization model creation and string representation."""
-        self.assertEqual(str(self.organization), "Test Fire Department")
+        expected_str = "Test Fire Department (Fire Department)"
+        self.assertEqual(str(self.organization), expected_str)
         self.assertEqual(self.organization.organization_type, "FIRE")
         self.assertTrue(self.organization.is_verified)
-        self.assertEqual(
-            self.organization.contact_email, "contact@testfire.gov"
-        )
+        contact_email = "contact@testfire.gov"
+        self.assertEqual(self.organization.contact_email, contact_email)
 
     def test_organization_type_choices(self):
         """Test that organization type choices are properly defined."""
@@ -85,7 +86,8 @@ class IncidentModelTest(TestCase):
 
     def test_incident_creation(self):
         """Test incident model creation and basic properties."""
-        self.assertEqual(str(self.incident), "Test Hurricane Response")
+        expected_str = "Test Hurricane Response (Hurricane)"
+        self.assertEqual(str(self.incident), expected_str)
         self.assertEqual(self.incident.incident_type, "HURRICANE")
         self.assertEqual(self.incident.status, "ACTIVE")
         self.assertEqual(self.incident.owner, self.user)
@@ -137,10 +139,16 @@ class AssetModelTest(TestCase):
         self.organization = IncidentOrganization.objects.create(
             name="Test Police Department", organization_type="POLICE"
         )
+        self.asset_category = AssetCategory.objects.create(
+            name="Radio",
+            description="Radio communication equipment",
+            requires_license=True,
+            requires_training=False,
+        )
         self.asset = Asset.objects.create(
             identifier="RADIO-001",
             name="Motorola Radio",
-            category="RADIO",
+            category=self.asset_category,
             organization=self.organization,
             status="AVAILABLE",
             serial_number="MOT123456",
@@ -152,17 +160,17 @@ class AssetModelTest(TestCase):
     def test_asset_creation(self):
         """Test asset model creation and properties."""
         self.assertEqual(str(self.asset), "RADIO-001 - Motorola Radio")
-        self.assertEqual(self.asset.category, "RADIO")
+        self.assertEqual(self.asset.category.name, "Radio")
         self.assertEqual(self.asset.status, "AVAILABLE")
         self.assertEqual(self.asset.value, Decimal("750.00"))
         self.assertEqual(self.asset.frequency, "155.475")
 
     def test_asset_availability_status(self):
         """Test asset availability status changes."""
-        self.assertTrue(self.asset.is_available())
+        self.assertTrue(self.asset.is_available)
         self.asset.status = "IN_USE"
         self.asset.save()
-        self.assertFalse(self.asset.is_available())
+        self.assertFalse(self.asset.is_available)
 
 
 class TimeEntryModelTest(TestCase):
@@ -195,7 +203,8 @@ class TimeEntryModelTest(TestCase):
 
     def test_time_entry_creation(self):
         """Test time entry model creation and calculations."""
-        self.assertEqual(str(self.time_entry), f"volunteer - {date.today()}")
+        expected_str = f"volunteer - Test Volunteer Group - {date.today()}"
+        self.assertEqual(str(self.time_entry), expected_str)
         self.assertEqual(self.time_entry.work_hours, Decimal("8.00"))
         self.assertEqual(self.time_entry.volunteer_hours, Decimal("2.00"))
         self.assertEqual(self.time_entry.travel_miles, 50)
@@ -237,31 +246,28 @@ class SupportRequestModelTest(TestCase):
             owner=self.user,
         )
         self.support_request = SupportRequest.objects.create(
-            user=self.user,
+            requested_by=self.user,
             requesting_organization=self.requesting_org,
             target_organization=self.target_org,
             related_incident=self.incident,
-            name="Emergency Communications Support",
+            title="Emergency Communications Support",
             description="Need radio operators for EOC",
-            location_name="City EOC",
-            location_address_1="456 Government Ave",
-            location_city="Test City",
-            location_state="TS",
-            location_zip="12345",
-            start_date=timezone.now().date(),
-            end_date=(timezone.now() + timedelta(days=7)).date(),
-            urgency_level="HIGH",
+            requested_start_date=timezone.now(),
+            requested_end_date=(timezone.now() + timedelta(days=7)),
+            urgency="HIGH",
             status="PENDING",
         )
 
     def test_support_request_creation(self):
         """Test support request model creation."""
-        self.assertEqual(
-            str(self.support_request), "Emergency Communications Support"
+        expected_str = (
+            "Emergency Communications Support - City Emergency Management → State Defense Force"
         )
+        self.assertEqual(str(self.support_request), expected_str)
         self.assertEqual(self.support_request.status, "PENDING")
-        self.assertEqual(self.support_request.urgency_level, "HIGH")
-        self.assertEqual(self.support_request.location_city, "Test City")
+        self.assertEqual(self.support_request.urgency, "HIGH")
+        title = "Emergency Communications Support"
+        self.assertEqual(self.support_request.title, title)
 
     def test_support_request_status_workflow(self):
         """Test support request status transitions."""
@@ -297,26 +303,27 @@ class CheckInModelTest(TestCase):
             first_name="John",
             last_name="Doe",
             roster_id="FD001",
-            role="FIREFIGHTER",
-            checked_in_by=self.user,
-            check_in_time=timezone.now(),
+            mileage=50,
+            food_expenses=Decimal("25.00"),
+            other_expenses=Decimal("10.00"),
+            user=self.user,
         )
 
     def test_checkin_creation(self):
         """Test check-in model creation."""
-        self.assertEqual(
-            str(self.checkin), "John Doe - Structure Fire Response"
-        )
-        self.assertEqual(self.checkin.role, "FIREFIGHTER")
+        expected_str = "John Doe - Structure Fire Response"
+        self.assertEqual(str(self.checkin), expected_str)
         self.assertEqual(self.checkin.roster_id, "FD001")
-        self.assertIsNone(self.checkin.check_out_time)
+        self.assertEqual(self.checkin.mileage, 50)
+        self.assertFalse(self.checkin.Check_Out)
 
     def test_checkin_checkout_workflow(self):
         """Test check-in/check-out workflow."""
-        self.assertFalse(self.checkin.is_checked_out())
-        self.checkin.check_out_time = timezone.now()
+        self.assertFalse(self.checkin.Check_Out)
+        self.checkin.Check_Out = True
+        self.checkin.checkout_time = timezone.now()
         self.checkin.save()
-        self.assertTrue(self.checkin.is_checked_out())
+        self.assertTrue(self.checkin.Check_Out)
 
 
 class PermissionsTest(TestCase):

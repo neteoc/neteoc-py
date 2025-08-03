@@ -106,13 +106,9 @@ class Address(models.Model):
             delta_phi = math.radians(lat2 - lat1)
             delta_lambda = math.radians(lon2 - lon1)
 
-            a = (
-                math.sin(delta_phi / 2) * math.sin(delta_phi / 2)
-                + math.cos(phi1)
-                * math.cos(phi2)
-                * math.sin(delta_lambda / 2)
-                * math.sin(delta_lambda / 2)
-            )
+            a = math.sin(delta_phi / 2) * math.sin(delta_phi / 2) + math.cos(phi1) * math.cos(
+                phi2
+            ) * math.sin(delta_lambda / 2) * math.sin(delta_lambda / 2)
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
             return R * c  # Distance in meters
@@ -168,15 +164,11 @@ class UserProfile(models.Model):
     )
 
     # Public profile fields
-    public_bio = models.TextField(
-        blank=True, default="", help_text="Short public bio"
-    )
+    public_bio = models.TextField(blank=True, default="", help_text="Short public bio")
     public_phone = models.CharField(
         max_length=20, blank=True, default="", help_text="Public phone number"
     )
-    public_email = models.EmailField(
-        blank=True, default="", help_text="Public email address"
-    )
+    public_email = models.EmailField(blank=True, default="", help_text="Public email address")
     public_visible = models.BooleanField(
         default=False,
         help_text="Is public profile info visible to org members and incident check-ins?",

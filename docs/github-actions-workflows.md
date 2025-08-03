@@ -94,7 +94,7 @@ The test suite includes:
 
 ### Common Issues
 
-1. **Test Database Permissions**: 
+1. **Test Database Permissions**:
    - Solution: Workflow uses SQLite for most tests, PostgreSQL service for integration tests
 
 2. **Missing System Dependencies**:

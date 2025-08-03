@@ -10,9 +10,12 @@ Tests cover:
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from django.utils import timezone
 
-from .models import IncidentOrganization, IncidentOrganizationUser
+from .models import (
+    IncidentOrganization,
+    IncidentOrganizationUser,
+    AssetCategory,
+)
 from .forms import IncidentForm, AssetForm
 
 
@@ -33,13 +36,13 @@ class IncidentFormTest(TestCase):
     def test_incident_form_valid_data(self):
         """Test incident form with valid data."""
         form_data = {
-            "name": "Medical Emergency Response",
-            "incident_type": "MEDICAL",
-            "status": "ACTIVE",
-            "start_date": timezone.now().date(),
+            "name": "Hurricane Response",
+            "incident_type": "HURRICANE",
+            "description": "Major hurricane response operation",
+            "location": "Coastal Region",
             "organization": self.organization.id,
-            "incident_commander": self.user.id,
-            "description": "Multi-casualty incident response",
+            "status": "ACTIVE",
+            "start_date": "2025-01-01T10:00",
         }
         form = IncidentForm(data=form_data)
         self.assertTrue(form.is_valid(), f"Form errors: {form.errors}")
@@ -64,13 +67,19 @@ class AssetFormTest(TestCase):
         self.organization = IncidentOrganization.objects.create(
             name="Test Public Works", organization_type="PUBLIC_WORKS"
         )
+        self.asset_category = AssetCategory.objects.create(
+            name="Vehicle",
+            description="Vehicles and transportation",
+            requires_license=True,
+            requires_training=True,
+        )
 
     def test_asset_form_valid_data(self):
         """Test asset form with valid data."""
         form_data = {
             "identifier": "TRUCK-001",
             "name": "Emergency Response Truck",
-            "category": "VEHICLE",
+            "category": self.asset_category.id,
             "organization": self.organization.id,
             "status": "AVAILABLE",
             "description": "Heavy rescue truck with equipment",
@@ -86,7 +95,7 @@ class AssetFormTest(TestCase):
         form_data = {
             "identifier": "",  # Required field
             "name": "Test Asset",
-            "category": "OTHER",
+            "category": self.asset_category.id,
             "organization": self.organization.id,
             "status": "AVAILABLE",
         }
@@ -125,16 +134,21 @@ class OperationsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Assets")
 
-    def test_incident_list_view_authenticated(self):
-        """Test incident list view with authenticated user."""
+    def test_dashboard_view_authenticated(self):
+        """Test dashboard view with authenticated user."""
         self.client.login(username="testuser", password="testpass123")
-        response = self.client.get(reverse("operations:incident_list"))
+        response = self.client.get(reverse("operations:dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Incidents")
 
     def test_time_entry_list_view_authenticated(self):
         """Test time entry list view with authenticated user."""
         self.client.login(username="testuser", password="testpass123")
+        # Set the organization in the session
+        session = self.client.session
+        session["current_organization_id"] = self.organization.id
+        session.save()
+
         response = self.client.get(reverse("operations:time_entry_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Time Tracking")

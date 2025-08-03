@@ -1,112 +1,118 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
-
 {% block title %}Time Tracking - {{ current_organization.name }}{% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1>Time Tracking</h1>
-                <a href="{% url 'operations:time_entry_create' %}" class="btn btn-primary">New Time Entry</a>
-            </div>
-
-            {% if not time_entries %}
-                <div class="alert alert-info">
-                    <h4>No time entries found</h4>
-                    <p>You haven't logged any time entries yet. Click "New Time Entry" to get started.</p>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1>Time Tracking</h1>
+                    <a href="{% url 'operations:time_entry_create' %}"
+                       class="btn btn-primary">New Time Entry</a>
                 </div>
-            {% else %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Organization</th>
-                                <th>Incident</th>
-                                <th>Activity Description</th>
-                                <th>Work Hours</th>
-                                <th>Volunteer Hours</th>
-                                <th>Travel Hours</th>
-                                <th>Travel Miles</th>
-                                <th>Total Costs</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in time_entries %}
+                {% if not time_entries %}
+                    <div class="alert alert-info">
+                        <h4>No time entries found</h4>
+                        <p>You haven't logged any time entries yet. Click "New Time Entry" to get started.</p>
+                    </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
                                 <tr>
-                                    <td>{{ entry.date|date:"M d, Y" }}</td>
-                                    <td>{{ entry.organization.name }}</td>
-                                    <td>
-                                        {% if entry.incident %}
-                                            <a href="{% url 'operations:incident_detail' entry.incident.id %}">{{ entry.incident.name }}</a>
-                                        {% else %}
-                                            <em>General</em>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="text-truncate" style="max-width: 200px;" title="{{ entry.activity_description }}">
-                                            {{ entry.activity_description|default:"—" }}
-                                        </div>
-                                    </td>
-                                    <td>{{ entry.work_hours|default:"—" }}</td>
-                                    <td>{{ entry.volunteer_hours|default:"—" }}</td>
-                                    <td>{{ entry.travel_hours|default:"—" }}</td>
-                                    <td>{{ entry.travel_miles|default:"—" }}</td>
-                                    <td>
-                                        {% if entry.travel_meal_costs or entry.billeting_costs or entry.purchases %}
-                                            ${{ entry.travel_meal_costs|add:entry.billeting_costs|add:entry.purchases|floatformat:2 }}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'operations:time_entry_detail' entry.id %}" class="btn btn-outline-primary">View</a>
-                                            <a href="{% url 'operations:time_entry_edit' entry.id %}" class="btn btn-outline-secondary">Edit</a>
-                                            <a href="{% url 'operations:time_entry_delete' entry.id %}" class="btn btn-outline-danger">Delete</a>
-                                        </div>
-                                    </td>
+                                    <th>Date</th>
+                                    <th>Organization</th>
+                                    <th>Incident</th>
+                                    <th>Activity Description</th>
+                                    <th>Work Hours</th>
+                                    <th>Volunteer Hours</th>
+                                    <th>Travel Hours</th>
+                                    <th>Travel Miles</th>
+                                    <th>Total Costs</th>
+                                    <th>Actions</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Summary section -->
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Summary for {{ current_organization.name }}</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <strong>Total Work Hours:</strong><br>
-                                        {{ total_work_hours|default:"0" }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Total Volunteer Hours:</strong><br>
-                                        {{ total_volunteer_hours|default:"0" }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Total Travel Hours:</strong><br>
-                                        {{ total_travel_hours|default:"0" }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Total Miles:</strong><br>
-                                        {{ total_miles|default:"0" }}
+                            </thead>
+                            <tbody>
+                                {% for entry in time_entries %}
+                                    <tr>
+                                        <td>{{ entry.date|date:"M d, Y" }}</td>
+                                        <td>{{ entry.organization.name }}</td>
+                                        <td>
+                                            {% if entry.incident %}
+                                                <a href="{% url 'operations:incident_detail' entry.incident.id %}">{{ entry.incident.name }}</a>
+                                            {% else %}
+                                                <em>General</em>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate"
+                                                 style="max-width: 200px"
+                                                 title="{{ entry.activity_description }}">
+                                                {{ entry.activity_description|default:"—" }}
+                                            </div>
+                                        </td>
+                                        <td>{{ entry.work_hours|default:"—" }}</td>
+                                        <td>{{ entry.volunteer_hours|default:"—" }}</td>
+                                        <td>{{ entry.travel_hours|default:"—" }}</td>
+                                        <td>{{ entry.travel_miles|default:"—" }}</td>
+                                        <td>
+                                            {% if entry.travel_meal_costs or entry.billeting_costs or entry.purchases %}
+                                                ${{ entry.travel_meal_costs|add:entry.billeting_costs|add:entry.purchases|floatformat:2 }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'operations:time_entry_detail' entry.id %}"
+                                                   class="btn btn-outline-primary">View</a>
+                                                <a href="{% url 'operations:time_entry_edit' entry.id %}"
+                                                   class="btn btn-outline-secondary">Edit</a>
+                                                <a href="{% url 'operations:time_entry_delete' entry.id %}"
+                                                   class="btn btn-outline-danger">Delete</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Summary section -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Summary for {{ current_organization.name }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <strong>Total Work Hours:</strong>
+                                            <br>
+                                            {{ total_work_hours|default:"0" }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Total Volunteer Hours:</strong>
+                                            <br>
+                                            {{ total_volunteer_hours|default:"0" }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Total Travel Hours:</strong>
+                                            <br>
+                                            {{ total_travel_hours|default:"0" }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Total Miles:</strong>
+                                            <br>
+                                            {{ total_miles|default:"0" }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}

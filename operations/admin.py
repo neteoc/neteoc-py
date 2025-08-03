@@ -716,98 +716,112 @@ class TimeEntryAdmin(admin.ModelAdmin):
         "activity_description",
     ]
     readonly_fields = ["created_at", "updated_at", "total_hours_display", "total_costs_display"]
-    
+
     fieldsets = [
-        (BASIC_INFORMATION, {
-            "fields": ("user", "organization", "incident", "date", "activity_description")
-        }),
-        ("Time Tracking", {
-            "fields": ("work_hours", "volunteer_hours", "travel_hours", "travel_miles")
-        }),
-        ("Cost Tracking", {
-            "fields": ("travel_meal_costs", "billeting_costs", "purchases", "purchase_explanation")
-        }),
-        ("Summary", {
-            "fields": ("total_hours_display", "total_costs_display"),
-            "classes": ("collapse",)
-        }),
-        (SYSTEM_INFO, {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
-        }),
+        (
+            BASIC_INFORMATION,
+            {"fields": ("user", "organization", "incident", "date", "activity_description")},
+        ),
+        (
+            "Time Tracking",
+            {"fields": ("work_hours", "volunteer_hours", "travel_hours", "travel_miles")},
+        ),
+        (
+            "Cost Tracking",
+            {
+                "fields": (
+                    "travel_meal_costs",
+                    "billeting_costs",
+                    "purchases",
+                    "purchase_explanation",
+                )
+            },
+        ),
+        (
+            "Summary",
+            {"fields": ("total_hours_display", "total_costs_display"), "classes": ("collapse",)},
+        ),
+        (SYSTEM_INFO, {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     ]
-    
+
     def get_queryset(self, request):
         """Filter time entries by organization membership"""
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        
+
         # Filter to organizations the user is a member of
-        user_orgs = IncidentOrganization.objects.filter(
-            users=request.user
-        ).values_list('pk', flat=True)
+        user_orgs = IncidentOrganization.objects.filter(users=request.user).values_list(
+            "pk", flat=True
+        )
         return qs.filter(organization__in=user_orgs)
-    
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Limit organization choices to user's organizations"""
         if db_field.name == "organization" and not request.user.is_superuser:
             kwargs["queryset"] = IncidentOrganization.objects.filter(users=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-    
+
     def total_hours_display(self, obj):
         """Display total hours"""
         return f"{obj.total_hours:.2f}"
+
     total_hours_display.short_description = "Total Hours"
-    
+
     def total_costs_display(self, obj):
         """Display total costs"""
         return f"${obj.total_costs:.2f}"
+
     total_costs_display.short_description = "Total Costs"
-    
+
     def activity_description_short(self, obj):
         """Display truncated activity description"""
-        return obj.activity_description[:50] + "..." if len(obj.activity_description) > 50 else obj.activity_description
+        return (
+            obj.activity_description[:50] + "..."
+            if len(obj.activity_description) > 50
+            else obj.activity_description
+        )
+
     activity_description_short.short_description = "Activity"
-    
+
     def has_view_permission(self, request, obj=None):
         """Users can view time entries for their organizations"""
         if not super().has_view_permission(request):
             return False
-        
+
         if obj is None:
             return True
-        
+
         if request.user.is_superuser:
             return True
-        
+
         # Check if user is member of the organization
         return obj.organization.users.filter(pk=request.user.pk).exists()
-    
+
     def has_change_permission(self, request, obj=None):
         """Users can only edit their own time entries"""
         if not super().has_change_permission(request):
             return False
-        
+
         if obj is None:
             return True
-        
+
         if request.user.is_superuser:
             return True
-        
+
         # Users can only edit their own time entries
         return obj.user == request.user
-    
+
     def has_delete_permission(self, request, obj=None):
         """Users can only delete their own time entries"""
         if not super().has_delete_permission(request):
             return False
-        
+
         if obj is None:
             return True
-        
+
         if request.user.is_superuser:
             return True
-        
+
         # Users can only delete their own time entries
         return obj.user == request.user
