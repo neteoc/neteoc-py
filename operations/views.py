@@ -94,7 +94,7 @@ def get_accessible_incidents(user, current_organization=None):
         "organization", flat=True
     )
 
-    if user_orgs:
+    if user_orgs.exists():
         if current_organization:
             # Filter to only the current organization if user has access to it
             if current_organization.id in user_orgs:
