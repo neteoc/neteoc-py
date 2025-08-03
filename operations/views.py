@@ -4,6 +4,11 @@ from django.contrib.auth.models import User
 from django_tables2 import SingleTableView
 from django.contrib import messages
 from django.utils import timezone
+from django.views.decorators.http import (
+    require_http_methods,
+    require_POST,
+    require_GET,
+)
 
 from .lib.aamva import aamva_2020
 import typing
@@ -129,6 +134,7 @@ def decode_aamva_fields(pdf417_data_txt: typing.List[str]) -> dict:
 
 
 @login_required()
+@require_GET
 def dashboard(request):
     """Main operations dashboard providing an overview of all operations activities"""
     context = {}
@@ -266,6 +272,7 @@ class report(SingleTableView):
 
 
 @login_required()
+@require_GET
 def index(request):
     """Main check-in dashboard showing active incidents and recent check-ins"""
     context = {}
@@ -298,6 +305,7 @@ def index(request):
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
 def new(request, incident_id):
     """Create a new check-in for a specific incident"""
     context = {}
@@ -370,6 +378,7 @@ def _set_checkin_names(checkin, dl_first_name, dl_last_name):
 
 
 @login_required()
+@require_POST
 def checkout(request, pk):
     """
     Handle checkout functionality for a specific CheckIn record.
@@ -436,6 +445,7 @@ def _check_incident_creation_permission(user, current_organization):
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
 def create_incident(request):
     """Create a new incident"""
     current_organization = _get_current_organization(request)
@@ -474,6 +484,7 @@ def create_incident(request):
 
 
 @login_required()
+@require_GET
 def incident_detail(request, incident_id):
     """Display incident details including incident commander information"""
     incident = get_object_or_404(Incident, id=incident_id)
@@ -500,6 +511,7 @@ def incident_detail(request, incident_id):
 
 
 @login_required()
+@require_GET
 def organization_list(request):
     """List organizations user belongs to"""
     user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).select_related(
@@ -514,6 +526,7 @@ def organization_list(request):
 
 
 @login_required()
+@require_GET
 def organization_detail(request, org_id):
     """View organization details and manage members"""
     # Check if user belongs to this organization
@@ -585,6 +598,7 @@ def _validate_invitation_request(email, organization):
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
 def invite_user(request, org_id):
     """Invite a user to join an organization"""
     # Check if user has permission to invite
@@ -629,6 +643,7 @@ def invite_user(request, org_id):
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
 def manage_user_role(request, org_id, user_id):
     """Manage a user's role within an organization"""
     # Check if current user has permission to manage roles
@@ -680,6 +695,7 @@ def manage_user_role(request, org_id, user_id):
 
 
 @login_required
+@require_GET
 def organization_public_profile(request, org_id):
     """Public profile view for an organization - for requesting support"""
     organization = get_object_or_404(IncidentOrganization, id=org_id)
@@ -708,6 +724,7 @@ def organization_public_profile(request, org_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def request_support(request, org_id):
     """Create a support request to an organization"""
     target_organization = get_object_or_404(IncidentOrganization, id=org_id)
@@ -752,6 +769,7 @@ def request_support(request, org_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def request_support_for_incident(request, incident_id):
     """Create a support request for a specific incident"""
     incident = get_object_or_404(Incident, id=incident_id)
@@ -827,6 +845,7 @@ def request_support_for_incident(request, incident_id):
 
 
 @login_required
+@require_GET
 def support_requests_list(request):
     """List support requests for user's organizations"""
     user_orgs = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
@@ -959,6 +978,7 @@ def _create_incident_from_support_request(support_request, user):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def support_request_detail(request, request_id):
     """View and manage a specific support request"""
     support_request = get_object_or_404(SupportRequest, id=request_id)
@@ -1010,6 +1030,7 @@ def support_request_detail(request, request_id):
 
 
 @login_required
+@require_POST
 def switch_organization(request, org_id):
     """
     Switch the user's current active organization context.
@@ -1037,6 +1058,7 @@ def switch_organization(request, org_id):
 
 
 @login_required
+@require_POST
 def clear_organization(request):
     """
     Clear the current organization context, showing data from all organizations.
@@ -1054,6 +1076,7 @@ def clear_organization(request):
 
 
 @login_required
+@require_GET
 def asset_list(request):
     """
     List all assets accessible to the user.
@@ -1086,6 +1109,7 @@ def asset_list(request):
 
 
 @login_required
+@require_GET
 def asset_detail(request, asset_id):
     """
     Display detailed information about an asset.
@@ -1130,6 +1154,7 @@ def asset_detail(request, asset_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_create(request):
     """
     Create a new asset.
@@ -1148,6 +1173,7 @@ def asset_create(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_edit(request, asset_id):
     """
     Edit an existing asset.
@@ -1173,6 +1199,7 @@ def asset_edit(request, asset_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_checkout(request, asset_id):
     """
     Checkout an asset to another user.
@@ -1209,6 +1236,7 @@ def asset_checkout(request, asset_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_accept_checkout(request, checkout_id):
     """
     Accept a pending asset checkout.
@@ -1244,6 +1272,7 @@ def asset_accept_checkout(request, checkout_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_checkin(request, checkout_id):
     """
     Check in an asset that is currently checked out.
@@ -1282,6 +1311,7 @@ def asset_checkin(request, checkout_id):
 
 
 @login_required
+@require_POST
 def asset_cancel_checkout(request, checkout_id):
     """
     Cancel a pending asset checkout.
@@ -1304,6 +1334,7 @@ def asset_cancel_checkout(request, checkout_id):
 
 
 @login_required
+@require_GET
 def asset_category_list(request):
     """
     List all asset categories.
@@ -1315,6 +1346,7 @@ def asset_category_list(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def asset_category_create(request):
     """
     Create a new asset category.
@@ -1342,6 +1374,7 @@ def asset_category_create(request):
 
 
 @login_required
+@require_GET
 def my_assets(request):
     """
     Show assets currently checked out to the user.
@@ -1370,6 +1403,7 @@ def my_assets(request):
 # ==================== Time Tracking Views ====================
 
 @login_required
+@require_GET
 def time_entry_list(request):
     """List time entries for the current user"""
     current_org = get_current_organization(request)
@@ -1390,7 +1424,8 @@ def time_entry_list(request):
     return render(request, "operations/time/time_entry_list.html", context)
 
 
-@login_required 
+@login_required
+@require_http_methods(["GET", "POST"])
 def time_entry_create(request):
     """Create a new time entry"""
     current_org = get_current_organization(request)
@@ -1423,6 +1458,7 @@ def time_entry_create(request):
 
 
 @login_required
+@require_GET
 def time_entry_detail(request, entry_id):
     """View a specific time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
@@ -1439,17 +1475,22 @@ def time_entry_detail(request, entry_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def time_entry_edit(request, entry_id):
     """Edit a time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
     
     # Check permissions - users can only edit their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
-        messages.error(request, "You don't have permission to edit this time entry.")
+        messages.error(
+            request, "You don't have permission to edit this time entry."
+        )
         return redirect(TIME_ENTRY_LIST_URL)
     
     if request.method == "POST":
-        form = TimeEntryForm(request.POST, instance=time_entry, user=request.user)
+        form = TimeEntryForm(
+            request.POST, instance=time_entry, user=request.user
+        )
         if form.is_valid():
             form.save()
             messages.success(request, "Time entry updated successfully.")
@@ -1465,13 +1506,16 @@ def time_entry_edit(request, entry_id):
 
 
 @login_required
+@require_POST
 def time_entry_delete(request, entry_id):
     """Delete a time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
     
     # Check permissions - users can only delete their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
-        messages.error(request, "You don't have permission to delete this time entry.")
+        messages.error(
+            request, "You don't have permission to delete this time entry."
+        )
         return redirect(TIME_ENTRY_LIST_URL)
     
     if request.method == "POST":

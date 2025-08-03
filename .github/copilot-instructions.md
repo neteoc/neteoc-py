@@ -128,6 +128,9 @@ Users should be able to sign up and create an account, however, they will not be
 
 ## Code Style and Standards
 
+Security should be a primary concern in all code written for this project. The code shall follow best practices for security, including but not limited to: 
+Application Security Verification Standard (ASVS) Level 1, OWASP Top Ten, and secure coding practices.
+
 Any documentation should be written in markdown (.md) format and should be placed in the `docs` directory. This excludes the projects main [README.md]('../README.md') file which should be in the root directory. A table of contents should be included in the `docs` directory [README.md](../docs/README.md) file that links to the rest of the documentation in the `docs` directory.
 
 The main readme file should be used to provide an overview of the project, how to run it locally, and any other relevant information. Deeper or more specific documentation should be placed in the `docs` directory with links to it in the main readme file.
