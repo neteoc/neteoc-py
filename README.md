@@ -125,7 +125,37 @@ Comprehensive documentation is available in the `docs` directory:
 
 ## Deployment
 
-The application is packaged as a Docker container and can be deployed on Kubernetes clusters. See the deployment documentation for detailed instructions.
+The application is packaged as a Docker container and can be deployed on Kubernetes clusters.
+
+### Production Environment Configuration
+
+For production deployments, use the production environment configuration:
+
+1. **Create production environment file:**
+
+   ```bash
+   cp .env.production .env.production.local
+   # Edit .env.production.local with your actual production values
+   ```
+
+2. **Run deployment checks:**
+
+   ```bash
+   # Using the helper script (recommended)
+   ./scripts/check-production-deploy.sh
+   
+   # Or manually with your production .env file
+   cp .env.production.local .env
+   uv run python manage.py check --deploy
+   rm .env  # Clean up
+   ```
+
+3. **Important Security Notes:**
+   - Never commit `.env.production.local` or any file containing real secrets
+   - The `.env.production` file is a template - replace all placeholder values
+   - Production environment files are automatically excluded from Git and Docker builds
+
+See the [deployment documentation](docs/docker-deployment.md) for detailed instructions.
 
 ## Contributing
 

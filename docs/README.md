@@ -24,6 +24,7 @@ This directory contains comprehensive documentation for the NetEOC disaster resp
 ### Deployment
 
 - [Docker Deployment](docker-deployment.md) - Guide for deploying NetEOC using Docker containers with automatic migrations
+- [Production Environment Configuration](production-environment-config.md) - Complete guide for setting up and validating production environment settings
 
 ## Getting Started
 
