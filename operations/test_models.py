@@ -1,0 +1,376 @@
+"""
+Unit tests for the operations application models.
+
+Tests cover core model functionality including:
+- Organization management
+- Incident creation and management
+- Asset tracking
+- Time tracking
+- Support requests
+- Check-in/check-out functionality
+"""
+
+from django.test import TestCase
+from django.contrib.auth.models import User
+from django.utils import timezone
+from decimal import Decimal
+from datetime import date, timedelta
+
+from .models import (
+    IncidentOrganization,
+    IncidentOrganizationUser,
+    Incident,
+    Asset,
+    TimeEntry,
+    SupportRequest,
+    CheckIn,
+)
+
+
+class IncidentOrganizationModelTest(TestCase):
+    """Test cases for the IncidentOrganization model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.organization = IncidentOrganization.objects.create(
+            name="Test Fire Department",
+            organization_type="FIRE",
+            contact_email="contact@testfire.gov",
+            contact_phone="555-0123",
+            address="123 Main St, Test City, TS 12345",
+            is_verified=True,
+        )
+
+    def test_organization_creation(self):
+        """Test organization model creation and string representation."""
+        self.assertEqual(str(self.organization), "Test Fire Department")
+        self.assertEqual(self.organization.organization_type, "FIRE")
+        self.assertTrue(self.organization.is_verified)
+        self.assertEqual(
+            self.organization.contact_email, "contact@testfire.gov"
+        )
+
+    def test_organization_type_choices(self):
+        """Test that organization type choices are properly defined."""
+        choices = dict(IncidentOrganization.ORGANIZATION_TYPES)
+        self.assertIn("FIRE", choices)
+        self.assertIn("POLICE", choices)
+        self.assertIn("EMS", choices)
+        self.assertEqual(choices["FIRE"], "Fire Department")
+
+
+class IncidentModelTest(TestCase):
+    """Test cases for the Incident model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="testpass123",
+        )
+        self.organization = IncidentOrganization.objects.create(
+            name="Test Emergency Management",
+            organization_type="EMERGENCY_MGMT",
+        )
+        self.incident = Incident.objects.create(
+            name="Test Hurricane Response",
+            incident_type="HURRICANE",
+            status="ACTIVE",
+            start_date=timezone.now(),
+            organization=self.organization,
+            owner=self.user,
+            incident_commander=self.user,
+        )
+
+    def test_incident_creation(self):
+        """Test incident model creation and basic properties."""
+        self.assertEqual(str(self.incident), "Test Hurricane Response")
+        self.assertEqual(self.incident.incident_type, "HURRICANE")
+        self.assertEqual(self.incident.status, "ACTIVE")
+        self.assertEqual(self.incident.owner, self.user)
+        self.assertEqual(self.incident.incident_commander, self.user)
+
+    def test_incident_has_admin_access(self):
+        """Test incident admin access permissions."""
+        # Owner should have admin access
+        self.assertTrue(self.incident.has_admin_access(self.user))
+
+        # Non-owner should not have admin access
+        other_user = User.objects.create_user(
+            username="otheruser",
+            email="other@example.com",
+            password="otherpass123",
+        )
+        self.assertFalse(self.incident.has_admin_access(other_user))
+
+        # Superuser should have admin access
+        superuser = User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="adminpass123",
+        )
+        self.assertTrue(self.incident.has_admin_access(superuser))
+
+    def test_incident_has_read_access(self):
+        """Test incident read access permissions."""
+        # Owner should have read access
+        self.assertTrue(self.incident.has_read_access(self.user))
+
+        # Create organization membership for read access test
+        other_user = User.objects.create_user(
+            username="member",
+            email="member@example.com",
+            password="memberpass123",
+        )
+        IncidentOrganizationUser.objects.create(
+            organization=self.organization, user=other_user, role="MEMBER"
+        )
+        self.assertTrue(self.incident.has_read_access(other_user))
+
+
+class AssetModelTest(TestCase):
+    """Test cases for the Asset model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.organization = IncidentOrganization.objects.create(
+            name="Test Police Department", organization_type="POLICE"
+        )
+        self.asset = Asset.objects.create(
+            identifier="RADIO-001",
+            name="Motorola Radio",
+            category="RADIO",
+            organization=self.organization,
+            status="AVAILABLE",
+            serial_number="MOT123456",
+            value=Decimal("750.00"),
+            frequency="155.475",
+            call_sign="KD8ABC",
+        )
+
+    def test_asset_creation(self):
+        """Test asset model creation and properties."""
+        self.assertEqual(str(self.asset), "RADIO-001 - Motorola Radio")
+        self.assertEqual(self.asset.category, "RADIO")
+        self.assertEqual(self.asset.status, "AVAILABLE")
+        self.assertEqual(self.asset.value, Decimal("750.00"))
+        self.assertEqual(self.asset.frequency, "155.475")
+
+    def test_asset_availability_status(self):
+        """Test asset availability status changes."""
+        self.assertTrue(self.asset.is_available())
+        self.asset.status = "IN_USE"
+        self.asset.save()
+        self.assertFalse(self.asset.is_available())
+
+
+class TimeEntryModelTest(TestCase):
+    """Test cases for the TimeEntry model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = User.objects.create_user(
+            username="volunteer",
+            email="volunteer@example.com",
+            password="volpass123",
+        )
+        self.organization = IncidentOrganization.objects.create(
+            name="Test Volunteer Group", organization_type="VOLUNTEER"
+        )
+        self.time_entry = TimeEntry.objects.create(
+            user=self.user,
+            organization=self.organization,
+            date=date.today(),
+            activity_description="Emergency response training",
+            work_hours=Decimal("8.00"),
+            volunteer_hours=Decimal("2.00"),
+            travel_hours=Decimal("1.50"),
+            travel_miles=50,
+            travel_meal_costs=Decimal("25.00"),
+            billeting_costs=Decimal("0.00"),
+            purchases=Decimal("15.50"),
+            purchase_explanation="First aid supplies",
+        )
+
+    def test_time_entry_creation(self):
+        """Test time entry model creation and calculations."""
+        self.assertEqual(str(self.time_entry), f"volunteer - {date.today()}")
+        self.assertEqual(self.time_entry.work_hours, Decimal("8.00"))
+        self.assertEqual(self.time_entry.volunteer_hours, Decimal("2.00"))
+        self.assertEqual(self.time_entry.travel_miles, 50)
+
+    def test_time_entry_total_costs(self):
+        """Test time entry total cost calculation."""
+        expected_total = Decimal("25.00") + Decimal("0.00") + Decimal("15.50")
+        actual_total = (
+            self.time_entry.travel_meal_costs
+            + self.time_entry.billeting_costs
+            + self.time_entry.purchases
+        )
+        self.assertEqual(actual_total, expected_total)
+
+
+class SupportRequestModelTest(TestCase):
+    """Test cases for the SupportRequest model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = User.objects.create_user(
+            username="coordinator",
+            email="coord@example.com",
+            password="coordpass123",
+        )
+        self.requesting_org = IncidentOrganization.objects.create(
+            name="City Emergency Management",
+            organization_type="EMERGENCY_MGMT",
+        )
+        self.target_org = IncidentOrganization.objects.create(
+            name="State Defense Force", organization_type="STATE"
+        )
+        self.incident = Incident.objects.create(
+            name="Flood Response 2025",
+            incident_type="FLOOD",
+            status="ACTIVE",
+            start_date=timezone.now(),
+            organization=self.requesting_org,
+            owner=self.user,
+        )
+        self.support_request = SupportRequest.objects.create(
+            user=self.user,
+            requesting_organization=self.requesting_org,
+            target_organization=self.target_org,
+            related_incident=self.incident,
+            name="Emergency Communications Support",
+            description="Need radio operators for EOC",
+            location_name="City EOC",
+            location_address_1="456 Government Ave",
+            location_city="Test City",
+            location_state="TS",
+            location_zip="12345",
+            start_date=timezone.now().date(),
+            end_date=(timezone.now() + timedelta(days=7)).date(),
+            urgency_level="HIGH",
+            status="PENDING",
+        )
+
+    def test_support_request_creation(self):
+        """Test support request model creation."""
+        self.assertEqual(
+            str(self.support_request), "Emergency Communications Support"
+        )
+        self.assertEqual(self.support_request.status, "PENDING")
+        self.assertEqual(self.support_request.urgency_level, "HIGH")
+        self.assertEqual(self.support_request.location_city, "Test City")
+
+    def test_support_request_status_workflow(self):
+        """Test support request status transitions."""
+        self.assertEqual(self.support_request.status, "PENDING")
+        self.support_request.status = "APPROVED"
+        self.support_request.save()
+        self.assertEqual(self.support_request.status, "APPROVED")
+
+
+class CheckInModelTest(TestCase):
+    """Test cases for the CheckIn model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = User.objects.create_user(
+            username="responder",
+            email="responder@example.com",
+            password="resppass123",
+        )
+        self.organization = IncidentOrganization.objects.create(
+            name="Test Fire Department", organization_type="FIRE"
+        )
+        self.incident = Incident.objects.create(
+            name="Structure Fire Response",
+            incident_type="FIRE",
+            status="ACTIVE",
+            start_date=timezone.now(),
+            organization=self.organization,
+            owner=self.user,
+        )
+        self.checkin = CheckIn.objects.create(
+            incident=self.incident,
+            first_name="John",
+            last_name="Doe",
+            roster_id="FD001",
+            role="FIREFIGHTER",
+            checked_in_by=self.user,
+            check_in_time=timezone.now(),
+        )
+
+    def test_checkin_creation(self):
+        """Test check-in model creation."""
+        self.assertEqual(
+            str(self.checkin), "John Doe - Structure Fire Response"
+        )
+        self.assertEqual(self.checkin.role, "FIREFIGHTER")
+        self.assertEqual(self.checkin.roster_id, "FD001")
+        self.assertIsNone(self.checkin.check_out_time)
+
+    def test_checkin_checkout_workflow(self):
+        """Test check-in/check-out workflow."""
+        self.assertFalse(self.checkin.is_checked_out())
+        self.checkin.check_out_time = timezone.now()
+        self.checkin.save()
+        self.assertTrue(self.checkin.is_checked_out())
+
+
+class PermissionsTest(TestCase):
+    """Test cases for permissions and access control."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.admin_user = User.objects.create_user(
+            username="admin",
+            email="admin@example.com",
+            password="adminpass123",
+        )
+        self.member_user = User.objects.create_user(
+            username="member",
+            email="member@example.com",
+            password="memberpass123",
+        )
+        self.outsider_user = User.objects.create_user(
+            username="outsider",
+            email="outsider@example.com",
+            password="outsiderpass123",
+        )
+
+        self.organization = IncidentOrganization.objects.create(
+            name="Secure Organization", organization_type="FEDERAL"
+        )
+
+        # Create organization memberships
+        IncidentOrganizationUser.objects.create(
+            organization=self.organization, user=self.admin_user, role="ADMIN"
+        )
+        IncidentOrganizationUser.objects.create(
+            organization=self.organization,
+            user=self.member_user,
+            role="MEMBER",
+        )
+
+        self.incident = Incident.objects.create(
+            name="Classified Operation",
+            incident_type="OTHER",
+            status="ACTIVE",
+            start_date=timezone.now(),
+            organization=self.organization,
+            owner=self.admin_user,
+        )
+
+    def test_organization_member_access(self):
+        """Test that organization members have appropriate access."""
+        self.assertTrue(self.incident.has_read_access(self.admin_user))
+        self.assertTrue(self.incident.has_read_access(self.member_user))
+        self.assertFalse(self.incident.has_read_access(self.outsider_user))
+
+    def test_admin_permissions(self):
+        """Test that admin users have elevated permissions."""
+        self.assertTrue(self.incident.has_admin_access(self.admin_user))
+        self.assertFalse(self.incident.has_admin_access(self.member_user))
+        self.assertFalse(self.incident.has_admin_access(self.outsider_user))
