@@ -7,6 +7,8 @@ Tests cover:
 - View functionality and responses
 """
 
+import secrets
+import string
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -19,6 +21,19 @@ from .models import (
 from .forms import IncidentForm, AssetForm
 
 
+def generate_test_password(length=12):
+    """Generate a random password for testing purposes."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+# Generate test passwords once for all test classes
+TEST_PASSWORD_1 = generate_test_password()
+TEST_PASSWORD_2 = generate_test_password()
+TEST_PASSWORD_3 = generate_test_password()
+TEST_PASSWORD_4 = generate_test_password()
+
+
 class IncidentFormTest(TestCase):
     """Test cases for the IncidentForm."""
 
@@ -27,7 +42,7 @@ class IncidentFormTest(TestCase):
         self.user = User.objects.create_user(
             username="manager",
             email="manager@example.com",
-            password="managerpass123",
+            password=TEST_PASSWORD_1,
         )
         self.organization = IncidentOrganization.objects.create(
             name="Test EMS", organization_type="EMS"
@@ -113,7 +128,7 @@ class OperationsViewTest(TestCase):
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
-            password="testpass123",
+            password=TEST_PASSWORD_2,
         )
         self.organization = IncidentOrganization.objects.create(
             name="Test Organization", organization_type="OTHER"
@@ -129,21 +144,21 @@ class OperationsViewTest(TestCase):
 
     def test_asset_list_view_authenticated(self):
         """Test asset list view with authenticated user."""
-        self.client.login(username="testuser", password="testpass123")
+        self.client.login(username="testuser", password=TEST_PASSWORD_2)
         response = self.client.get(reverse("operations:asset_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Assets")
 
     def test_dashboard_view_authenticated(self):
         """Test dashboard view with authenticated user."""
-        self.client.login(username="testuser", password="testpass123")
+        self.client.login(username="testuser", password=TEST_PASSWORD_2)
         response = self.client.get(reverse("operations:dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Incidents")
 
     def test_time_entry_list_view_authenticated(self):
         """Test time entry list view with authenticated user."""
-        self.client.login(username="testuser", password="testpass123")
+        self.client.login(username="testuser", password=TEST_PASSWORD_2)
         # Set the organization in the session
         session = self.client.session
         session["current_organization_id"] = self.organization.id

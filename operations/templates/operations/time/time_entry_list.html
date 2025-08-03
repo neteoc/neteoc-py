@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
-{% block title %}Time Tracking - {{ current_organization.name }}{% endblock %}
+{% block title %}
+    Time Tracking - {{ current_organization.name }}
+{% endblock title %}
 {% block content %}
     <div class="container">
         <div class="row">
@@ -115,4 +117,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

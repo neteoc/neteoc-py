@@ -44,6 +44,7 @@ colorama==0.4.6
     #   loguru
     #   tqdm
 cookiecutter==2.6.0
+coverage==7.10.1
 cryptography==45.0.5
     # via pyjwt
 cssbeautifier==1.15.4
@@ -133,7 +134,7 @@ editorconfig==0.17.1
     #   jsbeautifier
 et-xmlfile==2.0.0
     # via openpyxl
-filelock==3.18.0
+filelock==3.16.1
     # via virtualenv
 filetype==1.2.0
     # via willow

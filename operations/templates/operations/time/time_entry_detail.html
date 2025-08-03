@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Time Entry Details - {{ time_entry.date|date:"M d, Y" }}{% endblock %}
+{% block title %}
+    Time Entry Details - {{ time_entry.date|date:"M d, Y" }}
+{% endblock title %}
 {% block content %}
     <div class="container">
         <div class="row justify-content-center">
@@ -109,4 +111,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

@@ -49,5 +49,3 @@ jobs:
     - name: Format check with ruff
       run: |
         uv run ruff format --check .
-
-  

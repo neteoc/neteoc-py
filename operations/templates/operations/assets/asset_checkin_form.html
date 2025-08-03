@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}
+    {{ title }}
+{% endblock title %}
 {% block content %}
     <div class="container-fluid">
         <div class="row">
@@ -36,7 +38,8 @@
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="d-flex justify-content-between">
-                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href="{% url 'operations:asset_detail' checkout.asset.id %}" %}
+                                        {% url 'operations:asset_detail' checkout.asset.id as asset_detail_url %}
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href=asset_detail_url %}
                                         {% bootstrap_button button_type="submit" content="Check In Asset" button_class="btn-success" %}
                                     </div>
                                 </div>
@@ -56,4 +59,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

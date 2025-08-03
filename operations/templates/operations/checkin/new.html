@@ -3,7 +3,8 @@
 {% load django_bootstrap5 %}
 {% block content %}
     <div class="clearfix">
-        {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="{% url 'operations:checkin_index' %}" %}
+        {% url 'operations:checkin_index' as checkin_index_url %}
+        {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href=checkin_index_url %}
     </div>
     {% if incident %}
         <div class="alert alert-info mb-4">

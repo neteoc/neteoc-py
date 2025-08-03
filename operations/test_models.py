@@ -10,6 +10,8 @@ Tests cover core model functionality including:
 - Check-in/check-out functionality
 """
 
+import secrets
+import string
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -26,6 +28,25 @@ from .models import (
     SupportRequest,
     CheckIn,
 )
+
+
+# Password generation utility
+def generate_test_password():
+    """Generate a random password for test purposes."""
+    return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+
+
+# Test password constants
+TEST_PASSWORD_1 = generate_test_password()
+TEST_PASSWORD_2 = generate_test_password()
+TEST_PASSWORD_3 = generate_test_password()
+TEST_PASSWORD_4 = generate_test_password()
+TEST_PASSWORD_5 = generate_test_password()
+TEST_PASSWORD_6 = generate_test_password()
+TEST_PASSWORD_7 = generate_test_password()
+TEST_PASSWORD_8 = generate_test_password()
+TEST_PASSWORD_9 = generate_test_password()
+TEST_PASSWORD_10 = generate_test_password()
 
 
 class IncidentOrganizationModelTest(TestCase):
@@ -68,7 +89,7 @@ class IncidentModelTest(TestCase):
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
-            password="testpass123",
+            password=TEST_PASSWORD_1,
         )
         self.organization = IncidentOrganization.objects.create(
             name="Test Emergency Management",
@@ -102,7 +123,7 @@ class IncidentModelTest(TestCase):
         other_user = User.objects.create_user(
             username="otheruser",
             email="other@example.com",
-            password="otherpass123",
+            password=TEST_PASSWORD_2,
         )
         self.assertFalse(self.incident.has_admin_access(other_user))
 
@@ -110,7 +131,7 @@ class IncidentModelTest(TestCase):
         superuser = User.objects.create_superuser(
             username="admin",
             email="admin@example.com",
-            password="adminpass123",
+            password=TEST_PASSWORD_3,
         )
         self.assertTrue(self.incident.has_admin_access(superuser))
 
@@ -123,7 +144,7 @@ class IncidentModelTest(TestCase):
         other_user = User.objects.create_user(
             username="member",
             email="member@example.com",
-            password="memberpass123",
+            password=TEST_PASSWORD_4,
         )
         IncidentOrganizationUser.objects.create(
             organization=self.organization, user=other_user, role="MEMBER"
@@ -181,7 +202,7 @@ class TimeEntryModelTest(TestCase):
         self.user = User.objects.create_user(
             username="volunteer",
             email="volunteer@example.com",
-            password="volpass123",
+            password=TEST_PASSWORD_5,
         )
         self.organization = IncidentOrganization.objects.create(
             name="Test Volunteer Group", organization_type="VOLUNTEER"
@@ -228,7 +249,7 @@ class SupportRequestModelTest(TestCase):
         self.user = User.objects.create_user(
             username="coordinator",
             email="coord@example.com",
-            password="coordpass123",
+            password=TEST_PASSWORD_6,
         )
         self.requesting_org = IncidentOrganization.objects.create(
             name="City Emergency Management",
@@ -285,7 +306,7 @@ class CheckInModelTest(TestCase):
         self.user = User.objects.create_user(
             username="responder",
             email="responder@example.com",
-            password="resppass123",
+            password=TEST_PASSWORD_7,
         )
         self.organization = IncidentOrganization.objects.create(
             name="Test Fire Department", organization_type="FIRE"
@@ -334,17 +355,17 @@ class PermissionsTest(TestCase):
         self.admin_user = User.objects.create_user(
             username="admin",
             email="admin@example.com",
-            password="adminpass123",
+            password=TEST_PASSWORD_8,
         )
         self.member_user = User.objects.create_user(
             username="member",
             email="member@example.com",
-            password="memberpass123",
+            password=TEST_PASSWORD_9,
         )
         self.outsider_user = User.objects.create_user(
             username="outsider",
             email="outsider@example.com",
-            password="outsiderpass123",
+            password=TEST_PASSWORD_10,
         )
 
         self.organization = IncidentOrganization.objects.create(
