@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}
+    Time Entry Details - {{ time_entry.date|date:"M d, Y" }}
+{% endblock title %}
+{% block content %}
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Time Entry - {{ time_entry.date|date:"M d, Y" }}</h4>
+                        <div>
+                            <a href="{% url 'operations:time_entry_edit' time_entry.id %}"
+                               class="btn btn-outline-primary btn-sm">Edit</a>
+                            <a href="{% url 'operations:time_entry_delete' time_entry.id %}"
+                               class="btn btn-outline-danger btn-sm">Delete</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Organization</h6>
+                                <p>{{ time_entry.organization.name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Incident</h6>
+                                <p>
+                                    {% if time_entry.incident %}
+                                        <a href="{% url 'operations:incident_detail' time_entry.incident.id %}">{{ time_entry.incident.name }}</a>
+                                    {% else %}
+                                        <em>General (no specific incident)</em>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% if time_entry.activity_description %}
+                            <div class="mb-3">
+                                <h6>Activity Description</h6>
+                                <p>{{ time_entry.activity_description }}</p>
+                            </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>Work Hours</h6>
+                                <p>{{ time_entry.work_hours|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Volunteer Hours</h6>
+                                <p>{{ time_entry.volunteer_hours|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Travel Hours</h6>
+                                <p>{{ time_entry.travel_hours|default:"—" }}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Travel Miles</h6>
+                                <p>{{ time_entry.travel_miles|default:"—" }}</p>
+                            </div>
+                        </div>
+                        {% if time_entry.travel_meal_costs or time_entry.billeting_costs or time_entry.purchases %}
+                            <hr>
+                            <h5>Costs</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>Travel Meal Costs</h6>
+                                    <p>${{ time_entry.travel_meal_costs|default:"0.00" }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Billeting Costs</h6>
+                                    <p>${{ time_entry.billeting_costs|default:"0.00" }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Purchases</h6>
+                                    <p>${{ time_entry.purchases|default:"0.00" }}</p>
+                                </div>
+                            </div>
+                            {% if time_entry.purchase_explanation %}
+                                <div class="mb-3">
+                                    <h6>Purchase Explanation</h6>
+                                    <p>{{ time_entry.purchase_explanation }}</p>
+                                </div>
+                            {% endif %}
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h6>
+                                        <strong>Total Costs</strong>
+                                    </h6>
+                                    <p class="h5 text-primary">
+                                        ${{ time_entry.travel_meal_costs|add:time_entry.billeting_costs|add:time_entry.purchases|floatformat:2 }}
+                                    </p>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <hr>
+                        <div class="row text-muted">
+                            <div class="col-md-6">
+                                <small>Created: {{ time_entry.created_at|date:"M d, Y g:i A" }}</small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small>Last updated: {{ time_entry.updated_at|date:"M d, Y g:i A" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'operations:time_entry_list' %}"
+                           class="btn btn-secondary">Back to Time Tracking</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

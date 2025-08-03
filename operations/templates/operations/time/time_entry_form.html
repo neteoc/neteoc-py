@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}
+    {% if time_entry %}
+        Edit Time Entry
+    {% else %}
+        New Time Entry
+    {% endif %}
+    - {{ current_organization.name }}
+{% endblock title %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>
+                            {% if time_entry %}
+                                Edit Time Entry - {{ time_entry.date|date:"M d, Y" }}
+                            {% else %}
+                                New Time Entry
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">{% bootstrap_field form.date %}</div>
+                                <div class="col-md-6">{% bootstrap_field form.organization %}</div>
+                            </div>
+                            <div class="mb-3">{% bootstrap_field form.incident %}</div>
+                            <div class="mb-3">{% bootstrap_field form.activity_description %}</div>
+                            <h6 class="text-muted mb-3 mt-4">Time Tracking</h6>
+                            <div class="row">
+                                <div class="col-md-4">{% bootstrap_field form.work_hours %}</div>
+                                <div class="col-md-4">{% bootstrap_field form.volunteer_hours %}</div>
+                                <div class="col-md-4">{% bootstrap_field form.travel_hours %}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">{% bootstrap_field form.travel_miles %}</div>
+                            </div>
+                            <h6 class="text-muted mb-3 mt-4">Cost Tracking</h6>
+                            <div class="row">
+                                <div class="col-md-4">{% bootstrap_field form.travel_meal_costs %}</div>
+                                <div class="col-md-4">{% bootstrap_field form.billeting_costs %}</div>
+                                <div class="col-md-4">{% bootstrap_field form.purchases %}</div>
+                            </div>
+                            <div class="mb-3" id="purchase-explanation-group">
+                                {% bootstrap_field form.purchase_explanation %}
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Required when purchases > $0:</strong> Explain what was purchased and the reason for the purchase.
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'operations:time_entry_list' %}"
+                                   class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if time_entry %}
+                                        Update
+                                    {% else %}
+                                        Create
+                                    {% endif %}
+                                    Time Entry
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- Quick Help Panel -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-question-circle"></i> Quick Help
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>Time Tracking Fields</h6>
+                        <p class="small text-muted">
+                            <strong>Work Hours:</strong> Paid time spent on organization activities
+                            <br>
+                            <strong>Volunteer Hours:</strong> Unpaid time donated to the organization
+                            <br>
+                            <strong>Travel Hours:</strong> Time spent traveling to/from work locations
+                        </p>
+                        <h6>Travel Information</h6>
+                        <p class="small text-muted">
+                            <strong>Travel Miles:</strong> Round trip miles driven for organization work
+                            <br>
+                            <strong>Format:</strong> Enter as decimal (e.g., 25.5 miles)
+                        </p>
+                        <h6>Cost Tracking</h6>
+                        <p class="small text-muted">
+                            <strong>Travel Meal Costs:</strong> Food expenses while traveling
+                            <br>
+                            <strong>Billeting Costs:</strong> Lodging/accommodation expenses
+                            <br>
+                            <strong>Purchases:</strong> Equipment, supplies, or other items bought
+                        </p>
+                        <h6>Purchase Explanation</h6>
+                        <p class="small text-muted">
+                            <strong>Required when purchases > $0</strong>
+                            <br>
+                            Explain what was purchased and why it was necessary for the mission.
+                            <br>
+                            <br>
+                            <strong>Example:</strong> "Purchased 2 boxes of batteries ($15.99) for handheld radios that ran out of power during extended operations."
+                        </p>
+                        <h6>Data Entry Tips</h6>
+                        <ul class="small text-muted">
+                            <li>Use 0.25 hour increments (15 min intervals)</li>
+                            <li>At least one hour field must be > 0</li>
+                            <li>All cost fields accept dollars and cents</li>
+                            <li>Date auto-fills with today's date</li>
+                            <li>Incident selection is optional</li>
+                        </ul>
+                        <h6>Organization Context</h6>
+                        <p class="small text-muted">
+                            Time entries are associated with your currently selected organization.
+                            Switch organizations in the main dashboard if needed.
+                        </p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <small><strong>Pro Tip:</strong> Save time by filling out one complete day, then you can copy and edit for similar days!</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill today's date if creating new entry
+    const dateField = document.querySelector('input[type="date"]');
+    if (dateField && !dateField.value) {
+        dateField.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Show/hide and handle purchase explanation based on purchases field
+    const purchasesField = document.querySelector('input[name="purchases"]');
+    const explanationField = document.querySelector('textarea[name="purchase_explanation"]');
+    const explanationGroup = document.getElementById('purchase-explanation-group');
+
+    function toggleExplanation() {
+        const hasValue = purchasesField.value && parseFloat(purchasesField.value) > 0;
+
+        if (hasValue) {
+            explanationGroup.style.display = 'block';
+            explanationField.required = true;
+            explanationGroup.classList.add('border', 'border-warning', 'p-3', 'rounded');
+        } else {
+            explanationGroup.style.display = 'block'; // Always show but adjust styling
+            explanationField.required = false;
+            explanationGroup.classList.remove('border', 'border-warning', 'p-3', 'rounded');
+        }
+    }
+
+    // Initial setup
+    if (purchasesField && explanationField) {
+        purchasesField.addEventListener('input', toggleExplanation);
+        toggleExplanation(); // Initial check
+    }
+});
+    </script>
+{% endblock content %}

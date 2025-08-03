@@ -6,6 +6,8 @@ npm-debug.log
 .coverage
 .coverage.*
 .env
+.env.*
+.env.production
 .aws
 
 # Python specific ignores

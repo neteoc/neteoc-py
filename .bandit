@@ -1,0 +1,31 @@
+# Bandit configuration file for NetEOC security scanning
+# This file configures bandit to focus on project code and exclude dependencies
+
+exclude_dirs:
+  - .venv
+  - venv
+  - node_modules
+  - .git
+  - __pycache__
+  - .pytest_cache
+  - .ruff_cache
+  - migrations
+
+# Skip security checks that are acceptable in this project context:
+# B101: Test for use of assert
+# B106: Test for hardcoded password strings (acceptable in test files)
+# B110: Try except pass (acceptable in limited contexts)
+# B311: Standard pseudo-random generators (acceptable for demo data)
+skips:
+  - B101
+  - B106
+  - B110
+  - B311
+
+# Only scan Python files
+include:
+  - "*.py"
+
+# Bandit will scan the current directory recursively
+targets:
+  - "."

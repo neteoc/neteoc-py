@@ -3,7 +3,8 @@
 {% load django_bootstrap5 %}
 {% block content %}
     <div class="clearfix">
-        {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href="/operations/checkin/" %}
+        {% url 'operations:checkin_index' as checkin_index_url %}
+        {% bootstrap_button button_type="link" content="Back" button_class="btn-danger" extra_classes="float-end" href=checkin_index_url %}
     </div>
     {% if incident %}
         <div class="alert alert-info mb-4">
@@ -112,7 +113,7 @@
         if (rosterIdField) {
             const rosterHelpDiv = document.createElement('div');
             rosterHelpDiv.className = 'form-text text-muted mt-1';
-            rosterHelpDiv.innerHTML = '<i class="fa fa-save"></i> <a href="/profile/">Save your roster ID in your profile</a> to auto-fill this field.';
+            rosterHelpDiv.innerHTML = '<i class="fa fa-save"></i> <a href="{% url "user_profile:profile" %}">Save your roster ID in your profile</a> to auto-fill this field.';
             rosterIdField.parentNode.appendChild(rosterHelpDiv);
         }
     });

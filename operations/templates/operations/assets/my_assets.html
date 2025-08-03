@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}
+    My Assets
+{% endblock title %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>My Assets</h1>
+                    {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="{% url 'operations:asset_list' %}" %}
+                </div>
+                <!-- Pending Checkouts -->
+                {% if pending_checkouts %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                Pending Checkouts <span class="badge bg-warning">{{ pending_checkouts|length }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">These assets have been checked out to you but are waiting for your acceptance.</p>
+                            <div class="row">
+                                {% for checkout in pending_checkouts %}
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card border-warning">
+                                            <div class="card-body">
+                                                <h6 class="card-title">{{ checkout.asset.identifier }} - {{ checkout.asset.name }}</h6>
+                                                <p class="card-text">
+                                                    <small class="text-muted">{{ checkout.asset.category.name }}</small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <strong>From:</strong> {{ checkout.checked_out_by.get_full_name|default:checkout.checked_out_by.username }}
+                                                    <br>
+                                                    <strong>Time:</strong> {{ checkout.checkout_time|date:"M d, Y H:i" }}
+                                                </p>
+                                                {% if checkout.incident %}
+                                                    <p class="card-text">
+                                                        <strong>Incident:</strong> {{ checkout.incident.name }}
+                                                    </p>
+                                                {% endif %}
+                                                {% if checkout.purpose %}
+                                                    <p class="card-text">
+                                                        <strong>Purpose:</strong> {{ checkout.purpose }}
+                                                    </p>
+                                                {% endif %}
+                                                <div class="d-flex gap-2">
+                                                    {% bootstrap_button button_type="link" content="Accept" button_class="btn-success btn-sm" href="{% url 'operations:asset_accept_checkout' checkout.id %}" %}
+                                                    {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="{% url 'operations:asset_cancel_checkout' checkout.id %}" %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Active Checkouts -->
+                {% if active_checkouts %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                Currently Checked Out <span class="badge bg-success">{{ active_checkouts|length }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">These assets are currently checked out to you.</p>
+                            <div class="row">
+                                {% for checkout in active_checkouts %}
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card border-success">
+                                            <div class="card-body">
+                                                <h6 class="card-title">
+                                                    <a href="{% url 'operations:asset_detail' checkout.asset.id %}"
+                                                       class="text-decoration-none">
+                                                        {{ checkout.asset.identifier }} - {{ checkout.asset.name }}
+                                                    </a>
+                                                </h6>
+                                                <p class="card-text">
+                                                    <small class="text-muted">{{ checkout.asset.category.name }}</small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <strong>Checked out:</strong> {{ checkout.accepted_time|date:"M d, Y H:i" }}
+                                                </p>
+                                                {% if checkout.incident %}
+                                                    <p class="card-text">
+                                                        <strong>Incident:</strong>
+                                                        <a href="{% url 'operations:incident_detail' checkout.incident.id %}">{{ checkout.incident.name }}</a>
+                                                    </p>
+                                                {% endif %}
+                                                {% if checkout.purpose %}
+                                                    <p class="card-text">
+                                                        <strong>Purpose:</strong> {{ checkout.purpose }}
+                                                    </p>
+                                                {% endif %}
+                                                {% if checkout.asset.location %}
+                                                    <p class="card-text">
+                                                        <strong>Location:</strong> {{ checkout.asset.location }}
+                                                    </p>
+                                                {% endif %}
+                                                {% bootstrap_button button_type="link" content="Check In" button_class="btn-primary btn-sm" href="{% url 'operations:asset_checkin' checkout.id %}" %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- No Assets Message -->
+                {% if not pending_checkouts and not active_checkouts %}
+                    <div class="alert alert-info">
+                        <h4>No Assets</h4>
+                        <p>You don't have any assets currently checked out or pending acceptance.</p>
+                        {% bootstrap_button button_type="link" content="Browse Available Assets" button_class="btn-primary" href="{% url 'operations:asset_list' %}" %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}

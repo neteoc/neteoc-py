@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+{% block title %}
+    Asset Categories
+{% endblock title %}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Asset Categories</h1>
+                    <div>
+                        {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="{% url 'operations:asset_list' %}" %}
+                        {% bootstrap_button button_type="link" content="Create Category" button_class="btn-primary" href="{% url 'operations:asset_category_create' %}" %}
+                    </div>
+                </div>
+                {% if categories %}
+                    <div class="row">
+                        {% for category in categories %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ category.name }}</h5>
+                                        {% if category.description %}<p class="card-text">{{ category.description }}</p>{% endif %}
+                                        <div class="mb-2">
+                                            {% if category.requires_license %}<span class="badge bg-warning">Requires License</span>{% endif %}
+                                            {% if category.requires_training %}<span class="badge bg-info">Requires Training</span>{% endif %}
+                                        </div>
+                                        <p class="card-text">
+                                            <small class="text-muted">{{ category.assets.count }} asset{{ category.assets.count|pluralize }}</small>
+                                        </p>
+                                    </div>
+                                    <div class="card-footer">
+                                        <small class="text-muted">Created: {{ category.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h4>No Categories Found</h4>
+                        <p>There are no asset categories defined. Create one to get started with asset management.</p>
+                        {% bootstrap_button button_type="link" content="Create First Category" button_class="btn-primary" href="{% url 'operations:asset_category_create' %}" %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}

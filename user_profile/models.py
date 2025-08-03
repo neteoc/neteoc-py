@@ -15,7 +15,7 @@ class Address(models.Model):
 
     street_1 = models.CharField(max_length=100, help_text="Street address line 1")
     street_2 = models.CharField(
-        max_length=100, blank=True, null=True, help_text="Street address line 2 (optional)"
+        max_length=100, blank=True, default="", help_text="Street address line 2 (optional)"
     )
     city = models.CharField(max_length=50, help_text="City name")
     state = models.CharField(max_length=2, help_text="State abbreviation (e.g., CA, NY)")
@@ -41,7 +41,7 @@ class Address(models.Model):
     location_accuracy = models.CharField(
         max_length=20,
         blank=True,
-        null=True,
+        default="",
         choices=[
             ("EXACT", "Exact"),
             ("APPROXIMATE", "Approximate"),
@@ -59,7 +59,7 @@ class Address(models.Model):
     geocoding_source = models.CharField(
         max_length=50,
         blank=True,
-        null=True,
+        default="",
         help_text="Source used for geocoding (e.g., Google, OpenStreetMap)",
     )
 
@@ -101,14 +101,14 @@ class Address(models.Model):
 
             # Haversine formula
             R = 6371000  # Earth's radius in meters
-            φ1 = math.radians(lat1)
-            φ2 = math.radians(lat2)
-            Δφ = math.radians(lat2 - lat1)
-            Δλ = math.radians(lon2 - lon1)
+            phi1 = math.radians(lat1)
+            phi2 = math.radians(lat2)
+            delta_phi = math.radians(lat2 - lat1)
+            delta_lambda = math.radians(lon2 - lon1)
 
-            a = math.sin(Δφ / 2) * math.sin(Δφ / 2) + math.cos(φ1) * math.cos(φ2) * math.sin(
-                Δλ / 2
-            ) * math.sin(Δλ / 2)
+            a = math.sin(delta_phi / 2) * math.sin(delta_phi / 2) + math.cos(phi1) * math.cos(
+                phi2
+            ) * math.sin(delta_lambda / 2) * math.sin(delta_lambda / 2)
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
             return R * c  # Distance in meters
@@ -138,13 +138,21 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     roster_id = models.CharField(
-        max_length=7, blank=True, null=True, help_text="Your default roster ID (e.g., DOE1234)"
+        max_length=7,
+        blank=True,
+        default="",
+        help_text="Your default roster ID (e.g., DOE1234)",
     )
     drivers_license_id = models.CharField(
-        max_length=20, blank=True, null=True, help_text="Your driver's license ID number"
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Your driver's license ID number",
     )
     home_address = models.TextField(
-        blank=True, null=True, help_text="Your home address (street, city, state, zip)"
+        blank=True,
+        default="",
+        help_text="Your home address (street, city, state, zip)",
     )
     address = models.ForeignKey(
         Address,
@@ -156,11 +164,11 @@ class UserProfile(models.Model):
     )
 
     # Public profile fields
-    public_bio = models.TextField(blank=True, null=True, help_text="Short public bio")
+    public_bio = models.TextField(blank=True, default="", help_text="Short public bio")
     public_phone = models.CharField(
-        max_length=20, blank=True, null=True, help_text="Public phone number"
+        max_length=20, blank=True, default="", help_text="Public phone number"
     )
-    public_email = models.EmailField(blank=True, null=True, help_text="Public email address")
+    public_email = models.EmailField(blank=True, default="", help_text="Public email address")
     public_visible = models.BooleanField(
         default=False,
         help_text="Is public profile info visible to org members and incident check-ins?",

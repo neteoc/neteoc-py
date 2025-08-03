@@ -1,5 +1,8 @@
 # NetEOC Disaster Response Application
 
+[![Django Tests](https://github.com/neteoc/neteoc-py/actions/workflows/test.yml/badge.svg)](https://github.com/neteoc/neteoc-py/actions/workflows/test.yml)
+[![Docker Image CI](https://github.com/neteoc/neteoc-py/actions/workflows/docker-image.yml/badge.svg)](https://github.com/neteoc/neteoc-py/actions/workflows/docker-image.yml)
+
 This is a web application used in disaster response for tracking people, resources, and needs. It is designed to run completely disconnected from the internet on a laptop or a device like a Raspberry Pi.
 
 ## Overview
@@ -94,9 +97,41 @@ just lint
 
 ### Running Tests
 
+The project includes comprehensive unit tests for all core functionality:
+
 ```bash
+# Run all tests
 uv run python manage.py test
+
+# Run tests with verbose output
+uv run python manage.py test --verbosity=2
+
+# Run only operations app tests
+uv run python manage.py test operations
+
+# Run specific test class
+uv run python manage.py test operations.test_models.AssetModelTest
+
+# Run local test suite (includes linting, security scans)
+./scripts/run-tests.sh
 ```
+
+### Continuous Integration
+
+Tests automatically run on every push and pull request via GitHub Actions:
+
+- **Unit Tests**: Run on Python 3.11 and 3.12 with SQLite and PostgreSQL
+- **Code Quality**: Linting with ruff, format checking
+- **Security Scans**: Bandit for security vulnerabilities, Safety for dependency checks
+- **Coverage Reports**: Automatically generated and uploaded to Codecov
+
+### Test Structure
+
+Tests are organized in the `operations/` app:
+
+- `operations/test_models.py` - Model functionality tests (376 lines)
+- `operations/test_forms_views.py` - Form validation and view tests (140 lines)
+- `operations/tests.py` - Test discovery module (39 lines)
 
 ### Code Quality
 
@@ -125,7 +160,37 @@ Comprehensive documentation is available in the `docs` directory:
 
 ## Deployment
 
-The application is packaged as a Docker container and can be deployed on Kubernetes clusters. See the deployment documentation for detailed instructions.
+The application is packaged as a Docker container and can be deployed on Kubernetes clusters.
+
+### Production Environment Configuration
+
+For production deployments, use the production environment configuration:
+
+1. **Create production environment file:**
+
+   ```bash
+   cp .env.production .env.production.local
+   # Edit .env.production.local with your actual production values
+   ```
+
+2. **Run deployment checks:**
+
+   ```bash
+   # Using the helper script (recommended)
+   ./scripts/check-production-deploy.sh
+
+   # Or manually with your production .env file
+   cp .env.production.local .env
+   uv run python manage.py check --deploy
+   rm .env  # Clean up
+   ```
+
+3. **Important Security Notes:**
+   - Never commit `.env.production.local` or any file containing real secrets
+   - The `.env.production` file is a template - replace all placeholder values
+   - Production environment files are automatically excluded from Git and Docker builds
+
+See the [deployment documentation](docs/docker-deployment.md) for detailed instructions.
 
 ## Contributing
 

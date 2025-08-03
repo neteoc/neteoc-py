@@ -19,6 +19,7 @@ dependencies = [
     "django-widget-tweaks>=1.5.0",
     "django[gis]>=5.2.4",
     "djangorestframework>=3.16.0",
+    "djlint>=1.36.4",
     "geopy>=2.4.1",
     "gunicorn>=23.0.0",
     "markdown>=3.8.2",
@@ -32,12 +33,16 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "bandit>=1.8.6",
     "black>=25.1.0",
     "cookiecutter>=2.6.0",
+    "coverage>=7.6.1",
     "djlint>=1.36.4",
     "honcho>=2.0.0",
     "pre-commit>=4.2.0",
     "ruff>=0.12.7",
+    "safety>=3.6.0",
+    "yamllint>=1.37.1",
 ]
 
 [tool.ruff]

@@ -6,7 +6,7 @@
     <div class="container">
         <div class="row mb-3">
             <div class="col">
-                {% bootstrap_button button_type="link" content="Back" button_class="btn-primary" extra_classes="float-start" href="/operations/checkin/" %}
+                {% bootstrap_button button_type="link" content="Back" button_class="btn-primary" extra_classes="float-start" href="{% url 'operations:checkin_index' %}" %}
             </div>
         </div>
         <div class="row mb-3">
@@ -30,12 +30,12 @@
                             <div class="row">
                                 <div class="col-md-8">
                                     <div class="btn-group flex-wrap" role="group">
-                                        {% bootstrap_button button_type="link" content="All Incidents" button_class="btn-outline-primary" href="/operations/checkin/report/" %}
+                                        {% bootstrap_button button_type="link" content="All Incidents" button_class="btn-outline-primary" href="{% url 'operations:checkin_report' %}" %}
                                         {% for incident in incidents %}
                                             {% if current_incident and incident.id == current_incident.id %}
-                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-primary active" href="/operations/checkin/report/?incident="|add:incident.id %}
+                                                {% url 'operations:checkin_report' as report_url %}{% bootstrap_button button_type="link" content=incident.name button_class="btn-primary active" href=report_url|add:"?incident="|add:incident.id %}
                                             {% else %}
-                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-outline-primary" href="/operations/checkin/report/?incident="|add:incident.id %}
+                                                {% url 'operations:checkin_report' as report_url %}{% bootstrap_button button_type="link" content=incident.name button_class="btn-outline-primary" href=report_url|add:"?incident="|add:incident.id %}
                                             {% endif %}
                                         {% endfor %}
                                     </div>

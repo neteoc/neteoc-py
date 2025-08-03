@@ -21,6 +21,14 @@
             <a href="{% url 'operations:checkin_index' %}" class="btn btn-primary">
                 <i class="fa fa-clipboard-check me-1"></i>Check-in System
             </a>
+            <a href="{% url 'operations:time_entry_list' %}"
+               class="btn btn-outline-success">
+                <i class="fa fa-clock me-1"></i>Time Tracking
+            </a>
+            <a href="{% url 'operations:asset_list' %}"
+               class="btn btn-outline-warning">
+                <i class="fa fa-box me-1"></i>Assets
+            </a>
             <a href="{% url 'operations:checkin_report' %}"
                class="btn btn-outline-secondary">
                 <i class="fa fa-chart-bar me-1"></i>Reports
@@ -254,6 +262,14 @@
                         <a href="{% url 'operations:checkin_report' %}"
                            class="btn btn-outline-primary">
                             <i class="fa fa-chart-bar me-1"></i>View All Reports
+                        </a>
+                        <a href="{% url 'operations:time_entry_list' %}"
+                           class="btn btn-outline-success">
+                            <i class="fa fa-clock me-1"></i>Log Time
+                        </a>
+                        <a href="{% url 'operations:asset_list' %}"
+                           class="btn btn-outline-warning">
+                            <i class="fa fa-box me-1"></i>View Assets
                         </a>
                         <a href="{% url 'operations:support_requests_list' %}"
                            class="btn btn-outline-warning">

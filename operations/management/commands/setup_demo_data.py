@@ -10,11 +10,26 @@ from operations.models import (
     Incident,
     SupportRequest,
     CheckIn,
+    AssetCategory,
+    Asset,
 )
 
 
 class Command(BaseCommand):
     help = "Create sample data for NetEOC demonstration"
+
+    # Constants to avoid string duplication
+    USERNAME_JOHN_SMITH = "john.smith"
+    USERNAME_SARAH_JOHNSON = "sarah.johnson"
+    USERNAME_MIKE_WILSON = "mike.wilson"
+    USERNAME_LISA_CHEN = "lisa.chen"
+    USERNAME_DAVID_BROWN = "david.brown"
+    USERNAME_JENNIFER_GARCIA = "jennifer.garcia"
+    USERNAME_ROBERT_MARTINEZ = "robert.martinez"
+    USERNAME_MARIA_RODRIGUEZ = "maria.rodriguez"
+
+    INCIDENT_HURRICANE_2025 = "Demo Hurricane Response 2025"
+    CATEGORY_MEDICAL_EQUIPMENT = "Medical Equipment"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -43,6 +58,10 @@ class Command(BaseCommand):
         # Create sample incidents
         incidents = self._create_incidents(organizations, users)
 
+        # Create sample asset categories and assets
+        self._create_asset_categories()
+        self._create_assets(organizations)
+
         # Create sample support requests
         self._create_support_requests(organizations, users, incidents)
 
@@ -58,19 +77,29 @@ class Command(BaseCommand):
         # Delete in order to respect foreign key constraints
         CheckIn.objects.filter(incident__name__contains="Demo").delete()
         SupportRequest.objects.filter(title__contains="Demo").delete()
+
+        # Clear assets (demo assets have specific identifiers)
+        Asset.objects.filter(identifier__startswith="EMA-").delete()
+        Asset.objects.filter(identifier__startswith="SDF-").delete()
+        Asset.objects.filter(identifier__startswith="FD-").delete()
+        Asset.objects.filter(identifier__startswith="MED-").delete()
+
+        # Clear asset categories
+        AssetCategory.objects.all().delete()
+
         Incident.objects.filter(name__contains="Demo").delete()
 
         # Delete demo users (but keep admin users)
         demo_users = User.objects.filter(
             username__in=[
-                "john.smith",
-                "sarah.johnson",
-                "mike.wilson",
-                "lisa.chen",
-                "david.brown",
-                "jennifer.garcia",
-                "robert.martinez",
-                "maria.rodriguez",
+                self.USERNAME_JOHN_SMITH,
+                self.USERNAME_SARAH_JOHNSON,
+                self.USERNAME_MIKE_WILSON,
+                self.USERNAME_LISA_CHEN,
+                self.USERNAME_DAVID_BROWN,
+                self.USERNAME_JENNIFER_GARCIA,
+                self.USERNAME_ROBERT_MARTINEZ,
+                self.USERNAME_MARIA_RODRIGUEZ,
             ]
         )
         demo_users.delete()
@@ -148,7 +177,7 @@ class Command(BaseCommand):
 
         user_configs = [
             {
-                "username": "john.smith",
+                "username": self.USERNAME_JOHN_SMITH,
                 "email": "john.smith@democounty.gov",
                 "first_name": "John",
                 "last_name": "Smith",
@@ -156,7 +185,7 @@ class Command(BaseCommand):
                 "roles": ["ADMIN"],
             },
             {
-                "username": "sarah.johnson",
+                "username": self.USERNAME_SARAH_JOHNSON,
                 "email": "sarah.johnson@democounty.gov",
                 "first_name": "Sarah",
                 "last_name": "Johnson",
@@ -164,7 +193,7 @@ class Command(BaseCommand):
                 "roles": ["INCIDENT_MANAGER"],
             },
             {
-                "username": "mike.wilson",
+                "username": self.USERNAME_MIKE_WILSON,
                 "email": "mike.wilson@demosdf.mil",
                 "first_name": "Mike",
                 "last_name": "Wilson",
@@ -172,7 +201,7 @@ class Command(BaseCommand):
                 "roles": ["ADMIN"],
             },
             {
-                "username": "lisa.chen",
+                "username": self.USERNAME_LISA_CHEN,
                 "email": "lisa.chen@demosdf.mil",
                 "first_name": "Lisa",
                 "last_name": "Chen",
@@ -180,7 +209,7 @@ class Command(BaseCommand):
                 "roles": ["INCIDENT_MANAGER"],
             },
             {
-                "username": "david.brown",
+                "username": self.USERNAME_DAVID_BROWN,
                 "email": "david.brown@democityfd.org",
                 "first_name": "David",
                 "last_name": "Brown",
@@ -188,7 +217,7 @@ class Command(BaseCommand):
                 "roles": ["ADMIN"],
             },
             {
-                "username": "jennifer.garcia",
+                "username": self.USERNAME_JENNIFER_GARCIA,
                 "email": "jennifer.garcia@democityfd.org",
                 "first_name": "Jennifer",
                 "last_name": "Garcia",
@@ -196,7 +225,7 @@ class Command(BaseCommand):
                 "roles": ["RESPONDER"],
             },
             {
-                "username": "robert.martinez",
+                "username": self.USERNAME_ROBERT_MARTINEZ,
                 "email": "robert.martinez@demomedical.org",
                 "first_name": "Robert",
                 "last_name": "Martinez",
@@ -204,7 +233,7 @@ class Command(BaseCommand):
                 "roles": ["ADMIN"],
             },
             {
-                "username": "maria.rodriguez",
+                "username": self.USERNAME_MARIA_RODRIGUEZ,
                 "email": "maria.rodriguez@demomedical.org",
                 "first_name": "Maria",
                 "last_name": "Rodriguez",
@@ -239,7 +268,7 @@ class Command(BaseCommand):
                 org = organizations[org_type]
                 role = config["roles"][i] if i < len(config["roles"]) else config["roles"][0]
 
-                org_user, created = IncidentOrganizationUser.objects.get_or_create(
+                _, created = IncidentOrganizationUser.objects.get_or_create(
                     organization=org,
                     user=user,
                     defaults={
@@ -300,7 +329,7 @@ class Command(BaseCommand):
 
             # Make superuser a member of State Defense Force
             sdf_org = organizations["STATE"]
-            sdf_org_user, created = IncidentOrganizationUser.objects.get_or_create(
+            _, created = IncidentOrganizationUser.objects.get_or_create(
                 organization=sdf_org,
                 user=superuser,
                 defaults={
@@ -327,13 +356,13 @@ class Command(BaseCommand):
 
         incident_configs = [
             {
-                "name": "Demo Hurricane Response 2025",
+                "name": self.INCIDENT_HURRICANE_2025,
                 "type": "HURRICANE",
                 "description": "Category 3 hurricane making landfall in Demo County. Coordinated multi-agency response required.",
                 "status": "ACTIVE",
                 "organization": organizations["EMERGENCY_MGMT"],
-                "owner": users["john.smith"],
-                "commander": users["sarah.johnson"],
+                "owner": users[self.USERNAME_JOHN_SMITH],
+                "commander": users[self.USERNAME_SARAH_JOHNSON],
                 "start_date": now - timedelta(days=2),
                 "location": "Demo County, Florida",
             },
@@ -343,8 +372,8 @@ class Command(BaseCommand):
                 "description": "State Defense Force support mission for Demo County hurricane response.",
                 "status": "ACTIVE",
                 "organization": organizations["STATE"],
-                "owner": users["mike.wilson"],
-                "commander": users["lisa.chen"],
+                "owner": users[self.USERNAME_MIKE_WILSON],
+                "commander": users[self.USERNAME_LISA_CHEN],
                 "start_date": now - timedelta(days=1),
                 "location": "Demo County, Florida",
             },
@@ -354,8 +383,8 @@ class Command(BaseCommand):
                 "description": "Annual Demo City Summer Festival - medical and safety support required.",
                 "status": "STANDBY",
                 "organization": organizations["FIRE"],
-                "owner": users["david.brown"],
-                "commander": users["jennifer.garcia"],
+                "owner": users[self.USERNAME_DAVID_BROWN],
+                "commander": users[self.USERNAME_JENNIFER_GARCIA],
                 "start_date": now + timedelta(days=30),
                 "end_date": now + timedelta(days=32),
                 "location": "Demo City Central Park",
@@ -366,8 +395,8 @@ class Command(BaseCommand):
                 "description": "Multi-agency flood response training exercise.",
                 "status": "CLOSED",
                 "organization": organizations["EMERGENCY_MGMT"],
-                "owner": users["john.smith"],
-                "commander": users["sarah.johnson"],
+                "owner": users[self.USERNAME_JOHN_SMITH],
+                "commander": users[self.USERNAME_SARAH_JOHNSON],
                 "start_date": now - timedelta(days=15),
                 "end_date": now - timedelta(days=14),
                 "location": "Demo County Training Facility",
@@ -400,6 +429,240 @@ class Command(BaseCommand):
 
         return incidents
 
+    def _create_asset_categories(self):
+        """Create sample asset categories"""
+        self.stdout.write("Creating sample asset categories...")
+
+        category_configs = [
+            {
+                "name": "Radios",
+                "description": "Two-way radios and communication equipment",
+                "requires_license": True,
+                "requires_training": True,
+            },
+            {
+                "name": "Vehicles",
+                "description": "Emergency response vehicles and transportation",
+                "requires_license": True,
+                "requires_training": False,
+            },
+            {
+                "name": "Laptops",
+                "description": "Portable computers and tablets for field operations",
+                "requires_license": False,
+                "requires_training": False,
+            },
+            {
+                "name": self.CATEGORY_MEDICAL_EQUIPMENT,
+                "description": "Medical devices and emergency medical supplies",
+                "requires_license": False,
+                "requires_training": True,
+            },
+            {
+                "name": "Generators",
+                "description": "Portable power generators for emergency operations",
+                "requires_license": False,
+                "requires_training": True,
+            },
+        ]
+
+        categories = {}
+        for config in category_configs:
+            category, created = AssetCategory.objects.get_or_create(
+                name=config["name"],
+                defaults={
+                    "description": config["description"],
+                    "requires_license": config["requires_license"],
+                    "requires_training": config["requires_training"],
+                },
+            )
+            categories[config["name"]] = category
+
+            if created:
+                self.stdout.write(f"  ✓ Created asset category: {category.name}")
+            else:
+                self.stdout.write(f"  → Asset category already exists: {category.name}")
+
+        return categories
+
+    def _create_assets(self, organizations):
+        """Create sample assets"""
+        self.stdout.write("Creating sample assets...")
+
+        # Get asset categories
+        categories = {
+            "Radios": AssetCategory.objects.get(name="Radios"),
+            "Vehicles": AssetCategory.objects.get(name="Vehicles"),
+            "Laptops": AssetCategory.objects.get(name="Laptops"),
+            self.CATEGORY_MEDICAL_EQUIPMENT: AssetCategory.objects.get(
+                name=self.CATEGORY_MEDICAL_EQUIPMENT
+            ),
+            "Generators": AssetCategory.objects.get(name="Generators"),
+        }
+
+        asset_configs = [
+            # EMA Assets
+            {
+                "identifier": "EMA-RADIO-001",
+                "name": "Motorola XPR 7550e",
+                "description": "Digital two-way radio for emergency communications",
+                "category": categories["Radios"],
+                "organization": organizations["EMERGENCY_MGMT"],
+                "frequency": "155.175 MHz",
+                "call_sign": "KC1ABC",
+                "value": 450.00,
+            },
+            {
+                "identifier": "EMA-RADIO-002",
+                "name": "Motorola XPR 7550e",
+                "description": "Digital two-way radio for emergency communications",
+                "category": categories["Radios"],
+                "organization": organizations["EMERGENCY_MGMT"],
+                "frequency": "155.175 MHz",
+                "call_sign": "KC1ABD",
+                "value": 450.00,
+            },
+            {
+                "identifier": "EMA-VEH-001",
+                "name": "Ford F-150 Command Vehicle",
+                "description": "Mobile command vehicle for incident management",
+                "category": categories["Vehicles"],
+                "organization": organizations["EMERGENCY_MGMT"],
+                "license_plate": "EMA001",
+                "vin": "1FTFW1ET5DKF12345",
+                "fuel_type": "Gasoline",
+                "value": 45000.00,
+            },
+            {
+                "identifier": "EMA-LAP-001",
+                "name": "Dell Latitude 5520",
+                "description": "Rugged laptop for field operations",
+                "category": categories["Laptops"],
+                "organization": organizations["EMERGENCY_MGMT"],
+                "serial_number": "DLAT5520001",
+                "value": 1200.00,
+            },
+            {
+                "identifier": "EMA-GEN-001",
+                "name": "Honda EU7000iS Generator",
+                "description": "Portable inverter generator for emergency power",
+                "category": categories["Generators"],
+                "organization": organizations["EMERGENCY_MGMT"],
+                "serial_number": "EUGX-1234567",
+                "fuel_type": "Gasoline",
+                "value": 4500.00,
+            },
+            # SDF Assets
+            {
+                "identifier": "SDF-RADIO-001",
+                "name": "Harris XL-200P",
+                "description": "Military-grade portable radio",
+                "category": categories["Radios"],
+                "organization": organizations["STATE"],
+                "frequency": "406.125 MHz",
+                "call_sign": "KA1XYZ",
+                "value": 800.00,
+            },
+            {
+                "identifier": "SDF-VEH-001",
+                "name": "Chevrolet Tahoe",
+                "description": "Command and control vehicle",
+                "category": categories["Vehicles"],
+                "organization": organizations["STATE"],
+                "license_plate": "SDF001",
+                "vin": "1GNSKCKC5HR123456",
+                "fuel_type": "Gasoline",
+                "value": 55000.00,
+            },
+            {
+                "identifier": "SDF-LAP-001",
+                "name": "Panasonic Toughbook CF-33",
+                "description": "Fully rugged 2-in-1 detachable laptop",
+                "category": categories["Laptops"],
+                "organization": organizations["STATE"],
+                "serial_number": "CF33001234",
+                "value": 3500.00,
+            },
+            # Fire Department Assets
+            {
+                "identifier": "FD-RADIO-001",
+                "name": "Motorola APX 6000",
+                "description": "Fire department tactical radio",
+                "category": categories["Radios"],
+                "organization": organizations["FIRE"],
+                "frequency": "154.265 MHz",
+                "call_sign": "KD1FIR",
+                "value": 650.00,
+            },
+            {
+                "identifier": "FD-VEH-001",
+                "name": "Pierce Fire Engine",
+                "description": "Class A fire engine with 1500 GPM pump",
+                "category": categories["Vehicles"],
+                "organization": organizations["FIRE"],
+                "license_plate": "FD-E01",
+                "fuel_type": "Diesel",
+                "value": 750000.00,
+            },
+            # Medical Center Assets
+            {
+                "identifier": "MED-RADIO-001",
+                "name": "Kenwood NX-5200",
+                "description": "Digital radio for medical communications",
+                "category": categories["Radios"],
+                "organization": organizations["EMS"],
+                "frequency": "155.340 MHz",
+                "call_sign": "KC1MED",
+                "value": 400.00,
+            },
+            {
+                "identifier": "MED-LAP-001",
+                "name": "HP EliteBook 840",
+                "description": "Medical records and communication laptop",
+                "category": categories["Laptops"],
+                "organization": organizations["EMS"],
+                "serial_number": "HP840001234",
+                "value": 1100.00,
+            },
+            {
+                "identifier": "MED-EQUIP-001",
+                "name": "Zoll X-Series Monitor",
+                "description": "Advanced life support monitor/defibrillator",
+                "category": categories[self.CATEGORY_MEDICAL_EQUIPMENT],
+                "organization": organizations["EMS"],
+                "serial_number": "ZOLL12345678",
+                "value": 25000.00,
+            },
+        ]
+
+        assets = {}
+        for config in asset_configs:
+            asset, created = Asset.objects.get_or_create(
+                identifier=config["identifier"],
+                organization=config["organization"],
+                defaults={
+                    "name": config["name"],
+                    "description": config["description"],
+                    "category": config["category"],
+                    "status": "AVAILABLE",
+                    "serial_number": config.get("serial_number", ""),
+                    "value": config.get("value"),
+                    "frequency": config.get("frequency", ""),
+                    "call_sign": config.get("call_sign", ""),
+                    "license_plate": config.get("license_plate", ""),
+                    "vin": config.get("vin", ""),
+                    "fuel_type": config.get("fuel_type", ""),
+                },
+            )
+            assets[config["identifier"]] = asset
+
+            if created:
+                self.stdout.write(f"  ✓ Created asset: {asset.identifier} - {asset.name}")
+            else:
+                self.stdout.write(f"  → Asset already exists: {asset.identifier}")
+
+        return assets
+
     def _create_support_requests(self, organizations, users, incidents):
         """Create sample support requests"""
         self.stdout.write("Creating sample support requests...")
@@ -413,13 +676,13 @@ class Command(BaseCommand):
                 "urgency": "HIGH",
                 "requesting_org": organizations["EMERGENCY_MGMT"],
                 "target_org": organizations["STATE"],
-                "incident": incidents["Demo Hurricane Response 2025"],
-                "requested_by": users["sarah.johnson"],
+                "incident": incidents[self.INCIDENT_HURRICANE_2025],
+                "requested_by": users[self.USERNAME_SARAH_JOHNSON],
                 "status": "APPROVED",
                 "start_date": now + timedelta(hours=6),
                 "end_date": now + timedelta(days=5),
                 "approved_resources": "20 trained search and rescue personnel with equipment",
-                "reviewed_by": users["mike.wilson"],
+                "reviewed_by": users[self.USERNAME_MIKE_WILSON],
             },
             {
                 "title": "Demo Festival - Medical Support Request",
@@ -428,7 +691,7 @@ class Command(BaseCommand):
                 "requesting_org": organizations["FIRE"],
                 "target_org": organizations["EMS"],
                 "incident": incidents["Demo Community Festival 2025"],
-                "requested_by": users["david.brown"],
+                "requested_by": users[self.USERNAME_DAVID_BROWN],
                 "status": "PENDING",
                 "start_date": now + timedelta(days=30),
                 "end_date": now + timedelta(days=32),
@@ -439,8 +702,8 @@ class Command(BaseCommand):
                 "urgency": "MEDIUM",
                 "requesting_org": organizations["EMERGENCY_MGMT"],
                 "target_org": organizations["FIRE"],
-                "incident": incidents["Demo Hurricane Response 2025"],
-                "requested_by": users["john.smith"],
+                "incident": incidents[self.INCIDENT_HURRICANE_2025],
+                "requested_by": users[self.USERNAME_JOHN_SMITH],
                 "status": "PENDING",
                 "start_date": now + timedelta(hours=12),
                 "end_date": now + timedelta(days=3),
@@ -476,7 +739,7 @@ class Command(BaseCommand):
         self.stdout.write("Creating sample check-ins...")
 
         # Get the active hurricane incident
-        hurricane_incident = incidents["Demo Hurricane Response 2025"]
+        hurricane_incident = incidents[self.INCIDENT_HURRICANE_2025]
 
         # Create some sample check-ins with different people
         checkin_configs = [
@@ -484,7 +747,7 @@ class Command(BaseCommand):
                 "first_name": "Alex",
                 "last_name": "Thompson",
                 "roster_id": "THO001",
-                "user": users.get("sarah.johnson"),  # Some may have user accounts
+                "user": users.get(self.USERNAME_SARAH_JOHNSON),  # Some may have user accounts
             },
             {
                 "first_name": "Emily",
@@ -496,7 +759,7 @@ class Command(BaseCommand):
                 "first_name": "Marcus",
                 "last_name": "Williams",
                 "roster_id": "WIL003",
-                "user": users.get("jennifer.garcia"),
+                "user": users.get(self.USERNAME_JENNIFER_GARCIA),
             },
             {
                 "first_name": "Jessica",
@@ -511,7 +774,7 @@ class Command(BaseCommand):
         for i, config in enumerate(checkin_configs):
             checkin_time = now - timedelta(hours=random.randint(1, 48))
 
-            checkin, created = CheckIn.objects.get_or_create(
+            _, created = CheckIn.objects.get_or_create(
                 incident=hurricane_incident,
                 first_name=config["first_name"],
                 last_name=config["last_name"],
@@ -548,7 +811,7 @@ class Command(BaseCommand):
             f"  Organizations: {IncidentOrganization.objects.filter(name__contains='Demo').count()}"
         )
         self.stdout.write(
-            f"  Users: {User.objects.filter(username__in=['john.smith', 'sarah.johnson', 'mike.wilson', 'lisa.chen', 'david.brown', 'jennifer.garcia', 'robert.martinez', 'maria.rodriguez']).count()}"
+            f"  Users: {User.objects.filter(username__in=[self.USERNAME_JOHN_SMITH, self.USERNAME_SARAH_JOHNSON, self.USERNAME_MIKE_WILSON, self.USERNAME_LISA_CHEN, self.USERNAME_DAVID_BROWN, self.USERNAME_JENNIFER_GARCIA, self.USERNAME_ROBERT_MARTINEZ, self.USERNAME_MARIA_RODRIGUEZ]).count()}"
         )
         self.stdout.write(f"  Incidents: {Incident.objects.filter(name__contains='Demo').count()}")
         self.stdout.write(
@@ -557,6 +820,8 @@ class Command(BaseCommand):
         self.stdout.write(
             f"  Check-ins: {CheckIn.objects.filter(incident__name__contains='Demo').count()}"
         )
+        self.stdout.write(f"  Asset Categories: {AssetCategory.objects.count()}")
+        self.stdout.write(f"  Assets: {Asset.objects.count()}")
 
         self.stdout.write("\n👥 Demo Users (password: demo123):")
         self.stdout.write("  • john.smith - EMA Admin")
@@ -581,5 +846,13 @@ class Command(BaseCommand):
         self.stdout.write("  • 1 Approved request (EMA → SDF)")
         self.stdout.write("  • 2 Pending requests")
 
+        self.stdout.write("\n📦 Asset Categories:")
+        self.stdout.write("  • Radios (5 assets)")
+        self.stdout.write("  • Vehicles (3 assets)")
+        self.stdout.write("  • Laptops (4 assets)")
+        self.stdout.write("  • Medical Equipment (1 asset)")
+        self.stdout.write("  • Generators (1 asset)")
+
         self.stdout.write("\n🌐 You can now log in and explore NetEOC!")
+        self.stdout.write("   Try the new Asset Management system at /operations/assets/")
         self.stdout.write("   Try switching between organizations with maria.rodriguez")

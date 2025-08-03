@@ -12,6 +12,7 @@ This directory contains comprehensive documentation for the NetEOC disaster resp
 
 - [Incident Creation System](incident-creation-system.md) - Documentation for creating and managing incidents
 - [Incident Ownership and Access Control](incident-ownership-and-access-control.md) - Access control and permission systems for incidents
+- [Time Tracking System Access Guide](time-tracking-access-guide.md) - Complete guide for using the time tracking system
 
 ### Implementation Guides
 
@@ -23,6 +24,7 @@ This directory contains comprehensive documentation for the NetEOC disaster resp
 ### Deployment
 
 - [Docker Deployment](docker-deployment.md) - Guide for deploying NetEOC using Docker containers with automatic migrations
+- [Production Environment Configuration](production-environment-config.md) - Complete guide for setting up and validating production environment settings
 
 ## Getting Started
 

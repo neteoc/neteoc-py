@@ -19,7 +19,7 @@ from loguru import logger
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
 
 def setup_loguru(logger, settings_dict):
@@ -84,6 +84,28 @@ CSRF_TRUSTED_ORIGINS = config(
     default=",".join(DEFAULT_ALLOWED_HOSTS),
     cast=lambda v: [x.strip() for x in v.split(",")],
 )
+
+# Security settings for production deployment
+# HTTPS and SSL settings
+SECURE_SSL_REDIRECT = config("DJANGO_SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config(
+    "DJANGO_SECURE_HSTS_SECONDS", default=31536000 if not DEBUG else 0, cast=int
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG, cast=bool
+)
+SECURE_HSTS_PRELOAD = config("DJANGO_SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool)
+
+# Cookie security settings
+SESSION_COOKIE_SECURE = config("DJANGO_SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("DJANGO_CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SESSION_COOKIE_HTTPONLY = config("DJANGO_SESSION_COOKIE_HTTPONLY", default=True, cast=bool)
+CSRF_COOKIE_HTTPONLY = config("DJANGO_CSRF_COOKIE_HTTPONLY", default=True, cast=bool)
+
+# Content security
+SECURE_CONTENT_TYPE_NOSNIFF = config("DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True, cast=bool)
+SECURE_BROWSER_XSS_FILTER = config("DJANGO_SECURE_BROWSER_XSS_FILTER", default=True, cast=bool)
+X_FRAME_OPTIONS = config("DJANGO_X_FRAME_OPTIONS", default="DENY", cast=str)
 
 
 # Application definition
@@ -171,7 +193,7 @@ ROOT_URLCONF = "neteoc.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -311,11 +333,13 @@ ACCOUNT_EMAIL_VERIFICATION = "none"  # Disable email verification for SAML users
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_AUTO_SIGNUP = True
 
+# Login/Logout URL constants
+ACCOUNTS_LOGIN_URL = "/accounts/login/"
 
 SOCIALACCOUNT_ADAPTER = "home.provider.SocialAccountAdapter"
-LOGIN_URL = "/accounts/login/"
-WAGTAILADMIN_LOGIN_URL = "/accounts/login/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_URL = ACCOUNTS_LOGIN_URL
+WAGTAILADMIN_LOGIN_URL = ACCOUNTS_LOGIN_URL
+LOGOUT_REDIRECT_URL = ACCOUNTS_LOGIN_URL
 LOGIN_REDIRECT_URL = "/accounts/"
 ALLAUTH_UI_THEME = "light"
 
