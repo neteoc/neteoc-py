@@ -119,7 +119,7 @@ def get_current_organization(request):
         return None
 
     try:
-        organization = IncidentOrganization.objects.get(id=org_id)
+        organization = get_object_or_404(IncidentOrganization, id=org_id)
         # Check if user has access to this organization
         if IncidentOrganizationUser.objects.filter(
             user=request.user, organization=organization
@@ -429,7 +429,7 @@ def _get_current_organization(request):
     current_org_id = request.session.get("current_organization_id")
     if current_org_id:
         try:
-            return IncidentOrganization.objects.get(id=current_org_id)
+            return get_object_or_404(IncidentOrganization, id=current_org_id)
         except IncidentOrganization.DoesNotExist:
             request.session.pop("current_organization_id", None)
     return None

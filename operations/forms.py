@@ -520,7 +520,9 @@ class AssetCheckoutForm(ModelForm):
             ).order_by("-start_date")
 
             # Custom display for users showing full name if available
-            self.fields["checked_out_to"].label_from_instance = self.user_label_from_instance
+            self.fields["checked_out_to"].label_from_instance = (
+                lambda user: self.user_label_from_instance(user)
+            )
 
     def user_label_from_instance(self, user):
         """Show user's full name and username for better identification"""

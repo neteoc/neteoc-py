@@ -21,7 +21,7 @@
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="d-flex justify-content-between">
-                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href="/operations/assets/categories/" %}
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-secondary" href="{% url 'operations:asset_category_list' %}" %}
                                         {% bootstrap_button button_type="submit" content="Save Category" button_class="btn-primary" %}
                                     </div>
                                 </div>
