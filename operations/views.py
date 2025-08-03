@@ -72,9 +72,7 @@ def safe_redirect(request, fallback_url):
     """
     referer = request.META.get("HTTP_REFERER")
     if referer and url_has_allowed_host_and_scheme(
-        referer,
-        allowed_hosts=request.get_host(),
-        require_https=request.is_secure()
+        referer, allowed_hosts=request.get_host(), require_https=request.is_secure()
     ):
         return redirect(referer)
     return redirect(fallback_url)
@@ -465,7 +463,9 @@ def _check_incident_creation_permission(user, current_organization):
 def create_incident(request):
     """Create a new incident"""
     current_organization = _get_current_organization(request)
-    can_create, default_org = _check_incident_creation_permission(request.user, current_organization)
+    can_create, default_org = _check_incident_creation_permission(
+        request.user, current_organization
+    )
 
     if not can_create:
         messages.error(request, "You don't have permission to create incidents.")
@@ -582,9 +582,7 @@ def organization_detail(request, org_id):
 def _check_invitation_permission(user, org_id):
     """Helper to check if user can invite others to organization"""
     try:
-        user_membership = IncidentOrganizationUser.objects.get(
-            user=user, organization_id=org_id
-        )
+        user_membership = IncidentOrganizationUser.objects.get(user=user, organization_id=org_id)
         if user_membership.role not in ["ADMIN", "INCIDENT_MANAGER"]:
             return False, None, "You don't have permission to invite users to this organization."
         return True, user_membership.organization, None
@@ -1418,6 +1416,7 @@ def my_assets(request):
 
 # ==================== Time Tracking Views ====================
 
+
 @login_required
 @require_GET
 def time_entry_list(request):
@@ -1426,13 +1425,14 @@ def time_entry_list(request):
     if not current_org:
         messages.error(request, "Please select an organization first.")
         return redirect(ORGANIZATION_LIST_URL)
-    
+
     # Get time entries for current user and organization
-    time_entries = TimeEntry.objects.filter(
-        user=request.user,
-        organization=current_org
-    ).select_related('incident', 'organization').order_by('-date')
-    
+    time_entries = (
+        TimeEntry.objects.filter(user=request.user, organization=current_org)
+        .select_related("incident", "organization")
+        .order_by("-date")
+    )
+
     context = {
         "time_entries": time_entries,
         "current_organization": current_org,
@@ -1448,24 +1448,26 @@ def time_entry_create(request):
     if not current_org:
         messages.error(request, "Please select an organization first.")
         return redirect(ORGANIZATION_LIST_URL)
-    
+
     if request.method == "POST":
         form = TimeEntryForm(request.POST, user=request.user)
         if form.is_valid():
             time_entry = form.save(commit=False)
             time_entry.user = request.user
-            
+
             # Ensure the organization is one the user belongs to
-            if time_entry.organization not in IncidentOrganization.objects.filter(users=request.user):
-                messages.error(request, "You don't have permission to log time for that organization.")
+            if not time_entry.organization.users.filter(pk=request.user.pk).exists():
+                messages.error(
+                    request, "You don't have permission to log time for that organization."
+                )
                 return redirect(TIME_ENTRY_LIST_URL)
-            
+
             time_entry.save()
             messages.success(request, "Time entry created successfully.")
             return redirect(TIME_ENTRY_DETAIL_URL, entry_id=time_entry.id)
     else:
-        form = TimeEntryForm(user=request.user, initial={'organization': current_org})
-    
+        form = TimeEntryForm(user=request.user, initial={"organization": current_org})
+
     context = {
         "form": form,
         "current_organization": current_org,
@@ -1478,12 +1480,12 @@ def time_entry_create(request):
 def time_entry_detail(request, entry_id):
     """View a specific time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
-    
+
     # Check permissions - users can only view their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to view this time entry.")
         return redirect(TIME_ENTRY_LIST_URL)
-    
+
     context = {
         "time_entry": time_entry,
     }
@@ -1495,25 +1497,21 @@ def time_entry_detail(request, entry_id):
 def time_entry_edit(request, entry_id):
     """Edit a time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
-    
+
     # Check permissions - users can only edit their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
-        messages.error(
-            request, "You don't have permission to edit this time entry."
-        )
+        messages.error(request, "You don't have permission to edit this time entry.")
         return redirect(TIME_ENTRY_LIST_URL)
-    
+
     if request.method == "POST":
-        form = TimeEntryForm(
-            request.POST, instance=time_entry, user=request.user
-        )
+        form = TimeEntryForm(request.POST, instance=time_entry, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Time entry updated successfully.")
             return redirect(TIME_ENTRY_DETAIL_URL, entry_id=time_entry.id)
     else:
         form = TimeEntryForm(instance=time_entry, user=request.user)
-    
+
     context = {
         "form": form,
         "time_entry": time_entry,
@@ -1526,19 +1524,17 @@ def time_entry_edit(request, entry_id):
 def time_entry_delete(request, entry_id):
     """Delete a time entry"""
     time_entry = get_object_or_404(TimeEntry, id=entry_id)
-    
+
     # Check permissions - users can only delete their own time entries
     if time_entry.user != request.user and not request.user.is_superuser:
-        messages.error(
-            request, "You don't have permission to delete this time entry."
-        )
+        messages.error(request, "You don't have permission to delete this time entry.")
         return redirect(TIME_ENTRY_LIST_URL)
-    
+
     if request.method == "POST":
         time_entry.delete()
         messages.success(request, "Time entry deleted successfully.")
         return redirect(TIME_ENTRY_LIST_URL)
-    
+
     context = {
         "time_entry": time_entry,
     }

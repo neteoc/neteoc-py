@@ -8,7 +8,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1>{{ asset.identifier }} - {{ asset.name }}</h1>
                     <div>
-                        {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="/operations/assets/" %}
+                        {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="{% url 'operations:asset_list' %}" %}
                         {% if can_manage %}
                             {% url 'operations:asset_edit' asset.id as edit_url %}
                             {% bootstrap_button button_type="link" content="Edit Asset" button_class="btn-outline-primary" href=edit_url %}
@@ -176,7 +176,7 @@
                                         </p>
                                     {% endif %}
                                     {% if active_checkout %}
-                                        {% bootstrap_button button_type="link" content="Check In" button_class="btn-success btn-sm" href="/operations/assets/checkout/{{ active_checkout.id }}/checkin/" %}
+                                        {% bootstrap_button button_type="link" content="Check In" button_class="btn-success btn-sm" href="{% url 'operations:asset_checkin' active_checkout.id %}" %}
                                     {% endif %}
                                 {% else %}
                                     <p>Asset is {{ asset.get_status_display|lower }}</p>
@@ -190,8 +190,8 @@
                                         <strong>Pending Checkout</strong>
                                         <br>
                                         You have a pending checkout for this asset.
-                                        {% bootstrap_button button_type="link" content="Accept" button_class="btn-warning btn-sm" href="/operations/assets/checkout/{{ pending_checkout.id }}/accept/" %}
-                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="/operations/assets/checkout/{{ pending_checkout.id }}/cancel/" %}
+                                        {% bootstrap_button button_type="link" content="Accept" button_class="btn-warning btn-sm" href="{% url 'operations:asset_accept_checkout' pending_checkout.id %}" %}
+                                        {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="{% url 'operations:asset_cancel_checkout' pending_checkout.id %}" %}
                                     </div>
                                 {% endif %}
                             </div>

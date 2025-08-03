@@ -581,100 +581,122 @@ class AssetCheckinForm(forms.Form):
 
 class TimeEntryForm(ModelForm):
     """Form for creating and editing time entries"""
-    
+
     class Meta:
         model = TimeEntry
         fields = [
-            'organization',
-            'incident', 
-            'date',
-            'activity_description',
-            'work_hours',
-            'volunteer_hours', 
-            'travel_hours',
-            'travel_miles',
-            'travel_meal_costs',
-            'billeting_costs',
-            'purchases',
-            'purchase_explanation',
+            "organization",
+            "incident",
+            "date",
+            "activity_description",
+            "work_hours",
+            "volunteer_hours",
+            "travel_hours",
+            "travel_miles",
+            "travel_meal_costs",
+            "billeting_costs",
+            "purchases",
+            "purchase_explanation",
         ]
         widgets = {
-            'organization': forms.Select(attrs={'class': 'form-control'}),
-            'incident': forms.Select(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'activity_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'work_hours': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25', 'min': '0'}),
-            'volunteer_hours': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25', 'min': '0'}),
-            'travel_hours': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25', 'min': '0'}),
-            'travel_miles': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'}),
-            'travel_meal_costs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'billeting_costs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'purchases': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'purchase_explanation': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Required when purchases > $0. Explain what was purchased and why it was necessary...'}),
+            "organization": forms.Select(attrs={"class": "form-control"}),
+            "incident": forms.Select(attrs={"class": "form-control"}),
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "activity_description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "work_hours": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.25", "min": "0"}
+            ),
+            "volunteer_hours": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.25", "min": "0"}
+            ),
+            "travel_hours": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.25", "min": "0"}
+            ),
+            "travel_miles": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.1", "min": "0"}
+            ),
+            "travel_meal_costs": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "billeting_costs": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "purchases": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "purchase_explanation": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Required when purchases > $0. Explain what was purchased and why it was necessary...",
+                }
+            ),
         }
         labels = {
-            'organization': 'Organization',
-            'incident': 'Incident (Optional)',
-            'date': 'Date',
-            'activity_description': 'Activity Description',
-            'work_hours': 'Work Hours',
-            'volunteer_hours': 'Volunteer Hours',
-            'travel_hours': 'Travel Hours',
-            'travel_miles': 'Travel Miles',
-            'travel_meal_costs': 'Travel Meal Costs ($)',
-            'billeting_costs': 'Billeting/Lodging Costs ($)',
-            'purchases': 'Purchases ($)',
-            'purchase_explanation': 'Purchase Notes & Explanation',
+            "organization": "Organization",
+            "incident": "Incident (Optional)",
+            "date": "Date",
+            "activity_description": "Activity Description",
+            "work_hours": "Work Hours",
+            "volunteer_hours": "Volunteer Hours",
+            "travel_hours": "Travel Hours",
+            "travel_miles": "Travel Miles",
+            "travel_meal_costs": "Travel Meal Costs ($)",
+            "billeting_costs": "Billeting/Lodging Costs ($)",
+            "purchases": "Purchases ($)",
+            "purchase_explanation": "Purchase Notes & Explanation",
         }
         help_texts = {
-            'activity_description': 'Describe the work performed during this time period',
-            'work_hours': 'Paid hours worked (use 0.25 for 15-minute increments)',
-            'volunteer_hours': 'Unpaid volunteer hours (use 0.25 for 15-minute increments)',
-            'travel_hours': 'Hours spent traveling to/from work location',
-            'travel_miles': 'Round trip miles driven for organization work',
-            'travel_meal_costs': 'Cost of meals while traveling for work',
-            'billeting_costs': 'Cost of lodging or accommodation',
-            'purchases': 'Cost of equipment, supplies, or other items purchased',
-            'purchase_explanation': 'Required when purchases > $0. Explain what was purchased and the business reason.',
+            "activity_description": "Describe the work performed during this time period",
+            "work_hours": "Paid hours worked (use 0.25 for 15-minute increments)",
+            "volunteer_hours": "Unpaid volunteer hours (use 0.25 for 15-minute increments)",
+            "travel_hours": "Hours spent traveling to/from work location",
+            "travel_miles": "Round trip miles driven for organization work",
+            "travel_meal_costs": "Cost of meals while traveling for work",
+            "billeting_costs": "Cost of lodging or accommodation",
+            "purchases": "Cost of equipment, supplies, or other items purchased",
+            "purchase_explanation": "Required when purchases > $0. Explain what was purchased and the business reason.",
         }
-    
+
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        
+
         if user:
             # Filter organizations to those the user belongs to
-            self.fields['organization'].queryset = IncidentOrganization.objects.filter(
+            self.fields["organization"].queryset = IncidentOrganization.objects.filter(
                 users=user, is_active=True
             )
-            
+
             # Filter incidents to those the user has access to
             user_orgs = IncidentOrganization.objects.filter(users=user)
-            self.fields['incident'].queryset = Incident.objects.filter(
+            self.fields["incident"].queryset = Incident.objects.filter(
                 organization__in=user_orgs
-            ).select_related('organization')
-            
+            ).select_related("organization")
+
         # Set empty labels
-        self.fields['organization'].empty_label = "-- Select Organization --"
-        self.fields['incident'].empty_label = "-- Select Incident (Optional) --"
-        
+        self.fields["organization"].empty_label = "-- Select Organization --"
+        self.fields["incident"].empty_label = "-- Select Incident (Optional) --"
+
     def clean(self):
         cleaned_data = super().clean()
-        
+
         # Validate that at least one hour type is greater than 0
-        work_hours = cleaned_data.get('work_hours', 0)
-        volunteer_hours = cleaned_data.get('volunteer_hours', 0)
-        travel_hours = cleaned_data.get('travel_hours', 0)
-        
+        work_hours = cleaned_data.get("work_hours", 0)
+        volunteer_hours = cleaned_data.get("volunteer_hours", 0)
+        travel_hours = cleaned_data.get("travel_hours", 0)
+
         if work_hours == 0 and volunteer_hours == 0 and travel_hours == 0:
             raise forms.ValidationError("At least one type of hours must be greater than 0.")
-        
+
         # If purchases > 0, explanation is required
-        purchases = cleaned_data.get('purchases', 0)
-        purchase_explanation = cleaned_data.get('purchase_explanation', '').strip()
-        
+        purchases = cleaned_data.get("purchases", 0)
+        purchase_explanation = cleaned_data.get("purchase_explanation", "").strip()
+
         if purchases and purchases > 0 and not purchase_explanation:
-            self.add_error('purchase_explanation', 
-                "Purchase notes are required when a purchase amount is entered. Please explain what was purchased and why it was necessary.")
-        
+            self.add_error(
+                "purchase_explanation",
+                "Purchase notes are required when a purchase amount is entered. Please explain what was purchased and why it was necessary.",
+            )
+
         return cleaned_data
