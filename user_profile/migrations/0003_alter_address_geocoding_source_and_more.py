@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("user_profile", "0002_userprofile_public_bio_and_more"),
     ]
@@ -69,9 +68,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="userprofile",
             name="public_bio",
-            field=models.TextField(
-                blank=True, default="", help_text="Short public bio"
-            ),
+            field=models.TextField(blank=True, default="", help_text="Short public bio"),
         ),
         migrations.AlterField(
             model_name="userprofile",
