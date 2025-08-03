@@ -43,7 +43,7 @@ jobs:
           libgdal-dev \
           libproj-dev \
           libgeos-dev \
-          libspatialite7 \
+          libspatialite8t64 \
           spatialite-bin \
           libxml2-dev \
           libxmlsec1-dev \
@@ -205,8 +205,8 @@ jobs:
 
     - name: Run Bandit security scan
       run: |
-        uv run bandit -r . -f json -o bandit-report.json
-        uv run bandit -r . -ll
+        uv run bandit -r . --config .bandit -f json -o bandit-report.json
+        uv run bandit -r . --config .bandit
 
     - name: Run Safety security scan
       run: |
