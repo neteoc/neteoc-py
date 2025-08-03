@@ -5,6 +5,7 @@
     "visualstudioexptteam.vscodeintellicode",
     "monosans.djlint",
     "elagil.pre-commit-helper",
-    "sonarsource.sonarlint-vscode"
+    "sonarsource.sonarlint-vscode",
+    "sanjulaganepola.github-local-actions"
   ]
 }
