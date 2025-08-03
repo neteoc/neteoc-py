@@ -1044,7 +1044,6 @@ def support_request_detail(request, request_id):
 
 
 @login_required
-@require_POST
 def switch_organization(request, org_id):
     """
     Switch the user's current active organization context.
@@ -1072,7 +1071,6 @@ def switch_organization(request, org_id):
 
 
 @login_required
-@require_POST
 def clear_organization(request):
     """
     Clear the current organization context, showing data from all organizations.
