@@ -15,7 +15,7 @@ permissions:
 env:
   DJANGO_SETTINGS_MODULE: neteoc.settings
   DJANGO_DEBUG: false
-  SECRET_KEY: "test-secret-key-for-github-actions"
+  DJANGO_SECRET_KEY: "test-secret-key-for-github-actions"
   DATABASE_URL: "sqlite:///test.db"
 
 jobs:
@@ -121,6 +121,9 @@ jobs:
           - 5432:5432
 
     env:
+      DJANGO_SETTINGS_MODULE: neteoc.settings
+      DJANGO_DEBUG: false
+      DJANGO_SECRET_KEY: "test-secret-key-for-github-actions"
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/test_neteoc"
 
     steps:
