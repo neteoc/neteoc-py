@@ -6,7 +6,7 @@ ARG UV_VERSION=latest
 FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
 
 # Use the official Python image as the base image
-FROM python:${PYTHON_VERSION}
+FROM python:${PYTHON_VERSION}-${DEBIAN_VERSION}
 
 # Install system dependencies for GeoDjango
 RUN apt-get update \
@@ -16,8 +16,8 @@ RUN apt-get update \
     libgeos-dev \
     libproj-dev \
     libspatialite-dev \
-    spatialite-bin \
     postgresql-client \
+    spatialite-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for GeoDjango

@@ -22,6 +22,9 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
+# URL constants
+PROFILE_URL = "user_profile:profile"
+
 
 @login_required()
 def profile(request):
@@ -40,7 +43,7 @@ def profile(request):
             if form.is_valid():
                 form.save(request.user)
                 messages.success(request, "Your profile has been updated successfully!")
-                return redirect("user_profile:profile")
+                return redirect(PROFILE_URL)
             else:
                 messages.error(request, "Please correct the errors below.")
         elif form_type == "public_profile":
@@ -49,7 +52,7 @@ def profile(request):
             if public_profile_form.is_valid():
                 public_profile_form.save()
                 messages.success(request, "Your public profile has been updated!")
-                return redirect("user_profile:profile")
+                return redirect(PROFILE_URL)
             else:
                 messages.error(request, "Please correct the errors below in your public profile.")
         else:
@@ -137,7 +140,7 @@ def edit_public_profile(request):
         if form.is_valid():
             form.save()
             messages.success(request, "Your public profile has been updated!")
-            return redirect("user_profile:profile")
+            return redirect(PROFILE_URL)
         else:
             messages.error(request, "Please correct the errors below.")
     else:

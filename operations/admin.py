@@ -16,7 +16,7 @@ from .models import (
     TimeEntry,
 )
 
-# Constants to avoid string duplication
+# Constants for fieldset names
 BASIC_INFORMATION = "Basic Information"
 SYSTEM_INFO = "System Info"
 

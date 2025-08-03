@@ -63,13 +63,13 @@ def test_support_request_functionality():
             print(f"✅ Using existing target organization: {target_org.name}")
 
         # Add user to both organizations
-        req_org_user, created = IncidentOrganizationUser.objects.get_or_create(
+        _, created = IncidentOrganizationUser.objects.get_or_create(
             organization=requesting_org, user=user1, defaults={"is_admin": True, "role": "ADMIN"}
         )
         if created:
             print("✅ Added user to requesting organization")
 
-        target_org_user, created = IncidentOrganizationUser.objects.get_or_create(
+        _, created = IncidentOrganizationUser.objects.get_or_create(
             organization=target_org, user=user1, defaults={"is_admin": True, "role": "ADMIN"}
         )
         if created:

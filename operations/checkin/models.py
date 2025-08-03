@@ -32,7 +32,7 @@ class CheckIn(models.Model):
     )
     expense_notes = models.TextField(
         blank=True,
-        null=True,
+        default="",
         help_text="Explain any large expenses or unusual mileage.",
     )
     timestamp = models.DateTimeField(auto_now_add=True)

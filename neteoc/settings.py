@@ -311,11 +311,13 @@ ACCOUNT_EMAIL_VERIFICATION = "none"  # Disable email verification for SAML users
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_AUTO_SIGNUP = True
 
+# Login/Logout URL constants
+ACCOUNTS_LOGIN_URL = "/accounts/login/"
 
 SOCIALACCOUNT_ADAPTER = "home.provider.SocialAccountAdapter"
-LOGIN_URL = "/accounts/login/"
-WAGTAILADMIN_LOGIN_URL = "/accounts/login/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_URL = ACCOUNTS_LOGIN_URL
+WAGTAILADMIN_LOGIN_URL = ACCOUNTS_LOGIN_URL
+LOGOUT_REDIRECT_URL = ACCOUNTS_LOGIN_URL
 LOGIN_REDIRECT_URL = "/accounts/"
 ALLAUTH_UI_THEME = "light"
 

@@ -875,6 +875,89 @@ def support_requests_list(request):
     return render(request, "operations/support/requests_list.html", context)
 
 
+def _check_support_request_access(support_request, user_orgs):
+    """Check if user has access to view the support request"""
+    return (
+        support_request.requesting_organization_id in user_orgs
+        or support_request.target_organization_id in user_orgs
+    )
+
+
+def _get_support_request_permissions(support_request, user_orgs):
+    """Calculate user permissions for the support request"""
+    can_review = support_request.target_organization_id in user_orgs
+    can_create_incident = can_review and support_request.can_create_incident
+    can_cancel = (
+        support_request.requesting_organization_id in user_orgs
+        and support_request.status == "PENDING"
+    )
+    return can_review, can_create_incident, can_cancel
+
+
+def _handle_support_request_cancel(support_request, request):
+    """Handle cancelling a support request"""
+    support_request.status = "CANCELLED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get(
+        "cancel_reason", "Request cancelled by requesting organization"
+    )
+    support_request.save()
+    messages.info(request, "Support request has been cancelled.")
+
+
+def _handle_support_request_approve(support_request, request):
+    """Handle approving a support request"""
+    support_request.status = "APPROVED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get("response_notes", "")
+    support_request.approved_resources = request.POST.get("approved_resources", "")
+    support_request.save()
+    messages.success(request, "Support request approved.")
+
+
+def _handle_support_request_decline(support_request, request):
+    """Handle declining a support request"""
+    support_request.status = "DECLINED"
+    support_request.reviewed_by = request.user
+    support_request.reviewed_at = timezone.now()
+    support_request.response_notes = request.POST.get("response_notes", "")
+    support_request.save()
+    messages.info(request, "Support request declined.")
+
+
+def _create_incident_from_support_request(support_request, user):
+    """Create a new incident based on support request"""
+    new_incident = Incident.objects.create(
+        name=f"Support for {support_request.related_incident.name}",
+        incident_type=support_request.related_incident.incident_type,
+        description=f"Supporting {support_request.requesting_organization.name} for {support_request.related_incident.name}",
+        organization=support_request.target_organization,
+        owner=user,
+        incident_commander=user,
+        start_date=support_request.requested_start_date,
+        end_date=support_request.requested_end_date,
+        location=support_request.related_incident.location,
+        parent_incident=support_request.related_incident,
+        support_request=support_request,
+    )
+
+    # Create incident link
+    IncidentLink.objects.create(
+        from_incident=new_incident,
+        to_incident=support_request.related_incident,
+        relationship_type="SUPPORTS",
+        notes=f"Created from support request: {support_request.title}",
+        created_by=user,
+    )
+
+    support_request.status = "FULFILLED"
+    support_request.save()
+
+    return new_incident
+
+
 @login_required
 def support_request_detail(request, request_id):
     """View and manage a specific support request"""
@@ -885,23 +968,12 @@ def support_request_detail(request, request_id):
         "organization", flat=True
     )
 
-    has_access = (
-        support_request.requesting_organization_id in user_orgs
-        or support_request.target_organization_id in user_orgs
-    )
-
-    if not has_access:
+    if not _check_support_request_access(support_request, user_orgs):
         messages.error(request, "You don't have access to this support request.")
         return redirect(SUPPORT_REQUESTS_LIST_URL)
 
-    # Check if user can review (target organization member)
-    can_review = support_request.target_organization_id in user_orgs
-    can_create_incident = can_review and support_request.can_create_incident
-
-    # Check if user can cancel (requesting organization member and request is pending)
-    can_cancel = (
-        support_request.requesting_organization_id in user_orgs
-        and support_request.status == "PENDING"
+    can_review, can_create_incident, can_cancel = _get_support_request_permissions(
+        support_request, user_orgs
     )
 
     if request.method == "POST":
@@ -909,68 +981,22 @@ def support_request_detail(request, request_id):
 
         # Handle cancel action (requesting organization members only)
         if action == "cancel" and can_cancel:
-            support_request.status = "CANCELLED"
-            support_request.reviewed_by = request.user
-            support_request.reviewed_at = timezone.now()
-            support_request.response_notes = request.POST.get(
-                "cancel_reason", "Request cancelled by requesting organization"
-            )
-            support_request.save()
-            messages.info(request, "Support request has been cancelled.")
+            _handle_support_request_cancel(support_request, request)
             return redirect(SUPPORT_REQUEST_DETAIL_URL, request_id=support_request.id)
 
         # Handle review actions (target organization members only)
         elif can_review:
             if action == "approve":
-                support_request.status = "APPROVED"
-                support_request.reviewed_by = request.user
-                support_request.reviewed_at = timezone.now()
-                support_request.response_notes = request.POST.get("response_notes", "")
-                support_request.approved_resources = request.POST.get("approved_resources", "")
-                support_request.save()
-                messages.success(request, "Support request approved.")
-
+                _handle_support_request_approve(support_request, request)
             elif action == "decline":
-                support_request.status = "DECLINED"
-                support_request.reviewed_by = request.user
-                support_request.reviewed_at = timezone.now()
-                support_request.response_notes = request.POST.get("response_notes", "")
-                support_request.save()
-                messages.info(request, "Support request declined.")
-
+                _handle_support_request_decline(support_request, request)
             elif action == "create_incident" and can_create_incident:
-                # Create a new incident based on this support request
-                new_incident = Incident.objects.create(
-                    name=f"Support for {support_request.related_incident.name}",
-                    incident_type=support_request.related_incident.incident_type,
-                    description=f"Supporting {support_request.requesting_organization.name} for {support_request.related_incident.name}",
-                    organization=support_request.target_organization,
-                    owner=request.user,
-                    incident_commander=request.user,
-                    start_date=support_request.requested_start_date,
-                    end_date=support_request.requested_end_date,
-                    location=support_request.related_incident.location,
-                    parent_incident=support_request.related_incident,
-                    support_request=support_request,
+                new_incident = _create_incident_from_support_request(support_request, request.user)
+                messages.success(
+                    request,
+                    f"Created incident '{new_incident.name}' and linked it to the original incident.",
                 )
-
-            # Create incident link
-            IncidentLink.objects.create(
-                from_incident=new_incident,
-                to_incident=support_request.related_incident,
-                relationship_type="SUPPORTS",
-                notes=f"Created from support request: {support_request.title}",
-                created_by=request.user,
-            )
-
-            support_request.status = "FULFILLED"
-            support_request.save()
-
-            messages.success(
-                request,
-                f"Created incident '{new_incident.name}' and linked it to the original incident.",
-            )
-            return redirect(INCIDENT_DETAIL_URL, incident_id=new_incident.id)
+                return redirect(INCIDENT_DETAIL_URL, incident_id=new_incident.id)
 
         return redirect(SUPPORT_REQUEST_DETAIL_URL, request_id=support_request.id)
 
