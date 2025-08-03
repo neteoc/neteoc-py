@@ -9,6 +9,7 @@ from django.views.decorators.http import (
     require_POST,
     require_GET,
 )
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .lib.aamva import aamva_2020
 import typing
@@ -62,6 +63,21 @@ TIME_ENTRY_DETAIL_URL = "operations:time_entry_detail"
 NO_ACCESS_ORGANIZATION_MSG = "You don't have access to this organization."
 
 logger = getLogger(__name__)
+
+
+def safe_redirect(request, fallback_url):
+    """
+    Safely redirect to HTTP_REFERER if it's safe, otherwise use fallback URL.
+    Prevents open redirect vulnerabilities.
+    """
+    referer = request.META.get("HTTP_REFERER")
+    if referer and url_has_allowed_host_and_scheme(
+        referer,
+        allowed_hosts=request.get_host(),
+        require_https=request.is_secure()
+    ):
+        return redirect(referer)
+    return redirect(fallback_url)
 
 
 def get_accessible_incidents(user, current_organization=None):
@@ -1053,8 +1069,8 @@ def switch_organization(request, org_id):
     except IncidentOrganization.DoesNotExist:
         messages.error(request, "Organization not found.")
 
-    # Redirect back to where they came from, or dashboard
-    return redirect(request.META.get("HTTP_REFERER", DASHBOARD_URL))
+    # Safe redirect back to where they came from, or dashboard
+    return safe_redirect(request, DASHBOARD_URL)
 
 
 @login_required
@@ -1068,8 +1084,8 @@ def clear_organization(request):
         request, "Cleared organization filter - now showing data from all your organizations."
     )
 
-    # Redirect back to where they came from, or dashboard
-    return redirect(request.META.get("HTTP_REFERER", DASHBOARD_URL))
+    # Safe redirect back to where they came from, or dashboard
+    return safe_redirect(request, DASHBOARD_URL)
 
 
 # Asset Management Views
