@@ -33,9 +33,11 @@
                                         {% bootstrap_button button_type="link" content="All Incidents" button_class="btn-outline-primary" href="{% url 'operations:checkin_report' %}" %}
                                         {% for incident in incidents %}
                                             {% if current_incident and incident.id == current_incident.id %}
-                                                {% url 'operations:checkin_report' as report_url %}{% bootstrap_button button_type="link" content=incident.name button_class="btn-primary active" href=report_url|add:"?incident="|add:incident.id %}
+                                                {% url 'operations:checkin_report' as report_url %}
+                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-primary active" href=report_url|add:"?incident="|add:incident.id %}
                                             {% else %}
-                                                {% url 'operations:checkin_report' as report_url %}{% bootstrap_button button_type="link" content=incident.name button_class="btn-outline-primary" href=report_url|add:"?incident="|add:incident.id %}
+                                                {% url 'operations:checkin_report' as report_url %}
+                                                {% bootstrap_button button_type="link" content=incident.name button_class="btn-outline-primary" href=report_url|add:"?incident="|add:incident.id %}
                                             {% endif %}
                                         {% endfor %}
                                     </div>
