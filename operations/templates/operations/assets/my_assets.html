@@ -9,7 +9,8 @@
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1>My Assets</h1>
-                    {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href="{% url 'operations:asset_list' %}" %}
+                    {% url 'operations:asset_list' as asset_list_url %}
+                    {% bootstrap_button button_type="link" content="Back to Assets" button_class="btn-outline-secondary" href=asset_list_url %}
                 </div>
                 <!-- Pending Checkouts -->
                 {% if pending_checkouts %}
@@ -46,8 +47,10 @@
                                                     </p>
                                                 {% endif %}
                                                 <div class="d-flex gap-2">
-                                                    {% bootstrap_button button_type="link" content="Accept" button_class="btn-success btn-sm" href="{% url 'operations:asset_accept_checkout' checkout.id %}" %}
-                                                    {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href="{% url 'operations:asset_cancel_checkout' checkout.id %}" %}
+                                                    {% url 'operations:asset_accept_checkout' checkout.id as accept_url %}
+                                                    {% url 'operations:asset_cancel_checkout' checkout.id as cancel_url %}
+                                                    {% bootstrap_button button_type="link" content="Accept" button_class="btn-success btn-sm" href=accept_url %}
+                                                    {% bootstrap_button button_type="link" content="Cancel" button_class="btn-outline-danger btn-sm" href=cancel_url %}
                                                 </div>
                                             </div>
                                         </div>
@@ -100,7 +103,8 @@
                                                         <strong>Location:</strong> {{ checkout.asset.location }}
                                                     </p>
                                                 {% endif %}
-                                                {% bootstrap_button button_type="link" content="Check In" button_class="btn-primary btn-sm" href="{% url 'operations:asset_checkin' checkout.id %}" %}
+                                                {% url 'operations:asset_checkin' checkout.id as checkin_url %}
+                                                {% bootstrap_button button_type="link" content="Check In" button_class="btn-primary btn-sm" href=checkin_url %}
                                             </div>
                                         </div>
                                     </div>
@@ -114,7 +118,8 @@
                     <div class="alert alert-info">
                         <h4>No Assets</h4>
                         <p>You don't have any assets currently checked out or pending acceptance.</p>
-                        {% bootstrap_button button_type="link" content="Browse Available Assets" button_class="btn-primary" href="{% url 'operations:asset_list' %}" %}
+                        {% url 'operations:asset_list' as asset_list_url %}
+                        {% bootstrap_button button_type="link" content="Browse Available Assets" button_class="btn-primary" href=asset_list_url %}
                     </div>
                 {% endif %}
             </div>

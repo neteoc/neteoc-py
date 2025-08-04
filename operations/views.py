@@ -213,11 +213,11 @@ def dashboard(request):
 
     # Check if user can create incidents (must be in an organization with ADMIN or INCIDENT_MANAGER role)
     can_create_incidents = False
+    no_incident_permission_message = None
     if request.user.is_superuser:
         can_create_incidents = True
     else:
         if current_organization:
-            # Check role in current organization
             try:
                 user_role = IncidentOrganizationUser.objects.get(
                     user=request.user, organization=current_organization
@@ -226,11 +226,12 @@ def dashboard(request):
             except IncidentOrganizationUser.DoesNotExist:
                 can_create_incidents = False
         else:
-            # Check if user has the required role in any organization
             user_roles = IncidentOrganizationUser.objects.filter(user=request.user).values_list(
                 "role", flat=True
             )
             can_create_incidents = any(role in ["ADMIN", "INCIDENT_MANAGER"] for role in user_roles)
+    if not can_create_incidents:
+        no_incident_permission_message = "You do not have permission to create incidents. Please contact your organization administrator."
 
     context.update(
         {
@@ -242,6 +243,7 @@ def dashboard(request):
             "total_checkins_all_time": total_checkins_all_time,
             "current_active_checkins": current_active_checkins,
             "can_create_incidents": can_create_incidents,
+            "no_incident_permission_message": no_incident_permission_message,
         }
     )
 
