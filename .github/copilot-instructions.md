@@ -147,6 +147,8 @@ Run `pre-commit run --all-files` to check code style and standards.
 
 unit tests should be created for all new functionality and should be placed in the `tests` directory. All tests should be run using `uv run python manage.py test`. Tests should be written using the django test framework and should follow the [Django testing documentation](https://docs.djangoproject.com/en/5.2/topics/testing/overview/).
 
+Commits should follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. This means that commit messages should be structured in a way that allows for automated changelog generation and versioning. See the [Conventional Commits](../docs/conventional-commits.md) documentation for more information.
+
 ## Security
 
 All endpoints other than the wagtail managed public pages should be protected by the `@login_required` decorator.
