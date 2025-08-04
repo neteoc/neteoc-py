@@ -1,0 +1,211 @@
+{% extends "theme/base.html" %}
+{% load django_bootstrap5 %}
+{% load profile_tags %}
+
+{% block title %}My Contacts - NetEOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-person-lines-fill me-2"></i>My Contacts</h2>
+                <a href="{% url 'user_profile:contact_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Contact
+                </a>
+            </div>
+
+            <!-- Organization Filter -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="organization" class="form-label">Filter by Organization</label>
+                            <select name="organization" id="organization" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {% if org_filter == 'all' %}selected{% endif %}>All Organizations</option>
+                                <option value="global" {% if org_filter == 'global' %}selected{% endif %}>Global (No Organization)</option>
+                                {% for org_membership in user_organizations %}
+                                <option value="{{ org_membership.organization.id }}"
+                                        {% if org_filter == org_membership.organization.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ org_membership.organization.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bi bi-funnel me-1"></i>Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Contacts List -->
+            {% if contacts %}
+            <div class="row">
+                {% for contact in contacts %}
+                <div class="col-lg-6 col-xl-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1">
+                                        <i class="bi {{ contact.contact_type|contact_type_icon }} me-2 text-{{ contact.contact_type|contact_type_color }}"></i>
+                                        {{ contact.get_contact_type_display }}
+                                        {% if contact.is_primary %}
+                                        <span class="badge bg-warning text-dark ms-2">PRIMARY</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>{{ contact.value }}</strong>
+                                    </p>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            {% if contact.organization %}
+                                            <i class="bi bi-building me-1"></i>{{ contact.organization.name }}
+                                            {% else %}
+                                            <i class="bi bi-globe me-1"></i>Global Contact
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'user_profile:contact_edit' contact.id %}">
+                                                <i class="bi bi-pencil me-2"></i>Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" onclick="showContactDetails({{ contact.id }})">
+                                                <i class="bi bi-info-circle me-2"></i>Details
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'user_profile:contact_delete' contact.id %}">
+                                                <i class="bi bi-trash me-2"></i>Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <small class="text-muted">
+                                    Added {{ contact.created_at|date:"M j, Y" }}
+                                    {% if contact.updated_at != contact.created_at %}
+                                    • Updated {{ contact.updated_at|date:"M j, Y" }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-person-lines-fill display-1 text-muted"></i>
+                <h4 class="mt-3 text-muted">No Contacts Found</h4>
+                <p class="text-muted">
+                    {% if org_filter != 'all' %}
+                    No contacts found for the selected organization filter.
+                    <a href="{% url 'user_profile:contact_list' %}" class="btn btn-link">Show all contacts</a>
+                    {% else %}
+                    You haven't added any contacts yet.
+                    {% endif %}
+                </p>
+                <a href="{% url 'user_profile:contact_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Your First Contact
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Contact Details Modal -->
+<div class="modal fade" id="contactDetailsModal" tabindex="-1" aria-labelledby="contactDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactDetailsModalLabel">Contact Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="contactDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showContactDetails(contactId) {
+    const modal = new bootstrap.Modal(document.getElementById('contactDetailsModal'));
+    const content = document.getElementById('contactDetailsContent');
+
+    // Show loading spinner
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+
+    modal.show();
+
+    // Fetch contact details
+    fetch(`{% url 'user_profile:contact_detail' 0 %}`.replace('0', contactId))
+        .then(response => response.json())
+        .then(data => {
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-sm-4"><strong>Type:</strong></div>
+                    <div class="col-sm-8">${data.contact_type}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>Value:</strong></div>
+                    <div class="col-sm-8">${data.value}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>Organization:</strong></div>
+                    <div class="col-sm-8">${data.organization}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>Primary:</strong></div>
+                    <div class="col-sm-8">${data.is_primary ? 'Yes' : 'No'}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>Created:</strong></div>
+                    <div class="col-sm-8">${data.created_at}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>Updated:</strong></div>
+                    <div class="col-sm-8">${data.updated_at}</div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Error loading contact details. Please try again.
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}

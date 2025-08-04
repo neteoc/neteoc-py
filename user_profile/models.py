@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.validators import EmailValidator
 import math
 
 # Create your models here.
@@ -131,6 +132,85 @@ class Address(models.Model):
         return self.latitude is not None and self.longitude is not None
 
 
+class Contact(models.Model):
+    """
+    Normalized contact information with organization context support
+    """
+
+    CONTACT_TYPES = [
+        ("EMAIL", "Email"),
+        ("PHONE", "Phone"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="contacts")
+    organization = models.ForeignKey(
+        "operations.IncidentOrganization",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Organization context (null = global contact)",
+    )
+    contact_type = models.CharField(
+        max_length=10, choices=CONTACT_TYPES, help_text="Type of contact information"
+    )
+    value = models.CharField(
+        max_length=100, help_text="Contact value (email address or phone number)"
+    )
+    is_primary = models.BooleanField(
+        default=False, help_text="Is this the primary contact for this type?"
+    )
+    is_active = models.BooleanField(default=True, help_text="Soft delete flag")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Contact"
+        verbose_name_plural = "Contacts"
+        # Prevent duplicate contacts within same context
+        unique_together = [["user", "organization", "contact_type", "value"]]
+        # Only one primary contact per type per context
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "organization", "contact_type"],
+                condition=models.Q(is_primary=True, is_active=True),
+                name="unique_primary_contact",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "organization"]),
+            models.Index(fields=["is_primary", "is_active"]),
+            models.Index(fields=["contact_type", "is_active"]),
+        ]
+        ordering = ["contact_type", "-is_primary", "value"]
+
+    def __str__(self):
+        org_context = f" ({self.organization.name})" if self.organization else " (Global)"
+        primary_indicator = " [PRIMARY]" if self.is_primary else ""
+        return f"{self.user.username} - {self.get_contact_type_display()}: {self.value}{org_context}{primary_indicator}"
+
+    def clean(self):
+        """Validate contact value based on type"""
+        from django.core.exceptions import ValidationError
+
+        if self.contact_type == "EMAIL":
+            validator = EmailValidator()
+            try:
+                validator(self.value)
+            except ValidationError:
+                raise ValidationError({"value": "Enter a valid email address."})
+
+        elif self.contact_type == "PHONE":
+            # Basic phone validation - allow digits, spaces, hyphens, parentheses, plus
+            import re
+
+            if not re.match(r"^[\d\-\(\)\s\+\.]+$", self.value):
+                raise ValidationError({"value": "Enter a valid phone number."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
 class UserProfile(models.Model):
     """
     Extended user profile to store roster ID and other user-specific preferences
@@ -179,6 +259,12 @@ class UserProfile(models.Model):
     )
     public_email_visible = models.BooleanField(
         default=False, help_text="Show email in public profile"
+    )
+
+    # Gravatar photo fields
+    use_gravatar = models.BooleanField(default=True, help_text="Use Gravatar for profile photo")
+    gravatar_email = models.EmailField(
+        blank=True, help_text="Email for Gravatar (defaults to account email)"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load django_bootstrap5 %}
+{% load profile_tags %}
 {% block title %}
     {{ page_title }}
 {% endblock title %}
@@ -59,11 +60,16 @@
                                     {% for member in members %}
                                         <tr>
                                             <td>
-                                                <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
-                                                {% if member.user.email %}
-                                                    <br>
-                                                    <small class="text-muted">{{ member.user.email }}</small>
-                                                {% endif %}
+                                                <div class="d-flex align-items-center">
+                                                    {% user_profile_photo member.user size="32" css_class="me-2 rounded-circle" %}
+                                                    <div>
+                                                        <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
+                                                        {% if member.user.email %}
+                                                            <br>
+                                                            <small class="text-muted">{{ member.user.email }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td>
                                                 <span class="badge bg-{% if member.role == 'ADMIN' %}danger{% elif member.role == 'INCIDENT_MANAGER' %}warning{% elif member.role == 'RESPONDER' %}primary{% else %}secondary{% endif %}">

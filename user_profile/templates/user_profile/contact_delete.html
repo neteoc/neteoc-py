@@ -1,0 +1,77 @@
+{% extends "theme/base.html" %}
+{% load bootstrap5 %}
+{% load profile_tags %}
+
+{% block title %}Delete Contact - NetEOC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Delete Contact
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+
+                    <div class="contact-preview p-3 bg-light rounded mb-4">
+                        <h6>Contact to be deleted:</h6>
+                        <div class="d-flex align-items-center">
+                            <i class="bi {{ contact.contact_type|contact_type_icon }} me-2 text-{{ contact.contact_type|contact_type_color }}"></i>
+                            <div>
+                                <strong>{{ contact.value }}</strong>
+                                <small class="text-muted d-block">
+                                    {{ contact.get_contact_type_display }}
+                                    {% if contact.is_primary %} • Primary Contact{% endif %}
+                                    {% if contact.organization %}
+                                    • {{ contact.organization.name }}
+                                    {% else %}
+                                    • Global Contact
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {% bootstrap_field form.confirm layout="inline" %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'user_profile:contact_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger" id="delete-btn" disabled>
+                                <i class="bi bi-trash me-1"></i>Delete Contact
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enable delete button only when confirmation is checked
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('id_confirm');
+    const deleteButton = document.getElementById('delete-btn');
+
+    confirmCheckbox.addEventListener('change', function() {
+        deleteButton.disabled = !this.checked;
+    });
+});
+</script>
+{% endblock %}
