@@ -38,8 +38,10 @@ NetEOC is a Django-based disaster response application for tracking people, reso
 **Justfile Commands:**
 - `just serve` - Run development server with migrations
 - `just lint` - Run all linting and formatting
-- `just test` - Run comprehensive test suite
+- `just check` - Run pre-commit hooks
 - `just safe` - Run security scan
+- `just run` - Build and run with Podman
+- `just build` - Build and push Docker image
 
 **Testing:**
 - `./scripts/run-tests.sh` - Complete local test suite matching CI
@@ -105,13 +107,13 @@ NetEOC is a Django-based disaster response application for tracking people, reso
 
 ## Development Workflow
 
-1. Use Test Driven Development (TDD) for new features.
+1. Use Test Driven Development (TDD) for new features
 2. Always use `uv run` for Python commands
 3. Run `just lint` and `just check` before committing
 4. Write tests for new functionality in `operations/test_*.py`
 5. Use the existing patterns for forms, views, and templates
-6. Update documentation in `docs/` directory as needed.
-7. Update the CHANGELOG.md with new features, fixes, and breaking changes so that future developers and agents can understand the evolution of the project.
+6. Update documentation in `docs/` directory as needed
+7. Update CHANGELOG.md with new features, fixes, and breaking changes
 
 ## Debugging
 
