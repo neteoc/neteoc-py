@@ -153,7 +153,7 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center">
-                            {% user_profile_photo incident.incident_commander size="48" css_class="me-3 rounded-circle" %}
+                            {% profile_photo incident.incident_commander size="small" css_class="me-3 rounded-circle" %}
                             <div>
                                 <h6 class="mb-1">{{ incident.incident_commander.get_full_name|default:incident.incident_commander.username }}</h6>
                                 <small class="text-muted">Primary Point of Contact</small>
