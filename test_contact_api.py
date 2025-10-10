@@ -10,9 +10,9 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "neteoc.settings")
 django.setup()
 
-from django.contrib.auth.models import User
-from user_profile.models import Contact
-from user_profile.serializers import ContactSerializer, ContactListSerializer
+from django.contrib.auth.models import User  # noqa: E402
+from user_profile.models import Contact  # noqa: E402
+from user_profile.serializers import ContactSerializer, ContactListSerializer  # noqa: E402
 
 
 def test_contact_operations():

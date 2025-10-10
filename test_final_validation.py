@@ -10,10 +10,10 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "neteoc.settings")
 django.setup()
 
-from django.contrib.auth.models import User
-from user_profile.models import UserProfile, Contact
-from user_profile.utils import generate_gravatar_url, get_profile_photo_url
-from user_profile.serializers import ContactSerializer, UserRosterSerializer
+from django.contrib.auth.models import User  # noqa: E402
+from user_profile.models import UserProfile, Contact  # noqa: E402
+from user_profile.utils import generate_gravatar_url, get_profile_photo_url  # noqa: E402
+from user_profile.serializers import ContactSerializer, UserRosterSerializer  # noqa: E402
 
 
 def test_complete_implementation():
@@ -118,7 +118,7 @@ def test_complete_implementation():
     # Test template tags can be imported
     try:
         from user_profile.templatetags.profile_tags import (
-            profile_photo,
+            profile_photo,  # noqa: F401
             contact_type_icon,
             contact_type_color,
         )
@@ -175,7 +175,7 @@ def test_complete_implementation():
     print("\n8. Testing Integration Points...")
     # Test that models can be used in Django admin
     try:
-        from user_profile.admin import ContactAdmin, UserProfileAdmin
+        from user_profile.admin import ContactAdmin, UserProfileAdmin  # noqa: F401
 
         print("✅ Django admin integration working")
     except ImportError:
