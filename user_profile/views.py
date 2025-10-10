@@ -64,20 +64,26 @@ def profile(request):
         public_profile_form = PublicUserProfileForm(instance=user_profile)
 
     # Get user's organization memberships
+    # Note: We pass both memberships (for role display) and organizations (for switcher)
+    user_memberships = []
     user_organizations = []
     if IncidentOrganizationUser:
-        user_organizations = (
+        user_memberships = (
             IncidentOrganizationUser.objects.filter(user=request.user)
             .select_related("organization")
             .order_by("organization__name")
         )
+        # Extract organization objects for the organization switcher component
+        # This matches the pattern used in operations/context_processors.py
+        user_organizations = [membership.organization for membership in user_memberships]
 
     context = {
         "form": form,
         "public_profile_form": public_profile_form,
         "user_profile": user_profile,
         "created": created,
-        "user_organizations": user_organizations,
+        "user_memberships": user_memberships,  # For role display in profile
+        "user_organizations": user_organizations,  # For organization switcher
     }
 
     return render(request, "user_profile/profile.html", context)
@@ -236,17 +242,23 @@ def contact_list(request):
     contacts = contacts.order_by("contact_type", "-is_primary", "value")
 
     # Get user's organizations for filter dropdown
+    # Note: We pass both memberships (for role display if needed) and organizations (for switcher)
+    user_memberships = []
     user_organizations = []
     if IncidentOrganizationUser:
-        user_organizations = (
+        user_memberships = (
             IncidentOrganizationUser.objects.filter(user=request.user)
             .select_related("organization")
             .order_by("organization__name")
         )
+        # Extract organization objects for the organization switcher component
+        # This matches the pattern used in operations/context_processors.py
+        user_organizations = [membership.organization for membership in user_memberships]
 
     context = {
         "contacts": contacts,
-        "user_organizations": user_organizations,
+        "user_memberships": user_memberships,  # For role display if needed
+        "user_organizations": user_organizations,  # For organization switcher
         "org_filter": org_filter,
     }
 

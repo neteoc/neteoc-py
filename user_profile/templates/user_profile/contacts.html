@@ -24,10 +24,10 @@
                             <select name="organization" id="organization" class="form-select" onchange="this.form.submit()">
                                 <option value="all" {% if org_filter == 'all' %}selected{% endif %}>All Organizations</option>
                                 <option value="global" {% if org_filter == 'global' %}selected{% endif %}>Global (No Organization)</option>
-                                {% for org_membership in user_organizations %}
-                                <option value="{{ org_membership.organization.id }}"
-                                        {% if org_filter == org_membership.organization.id|stringformat:'s' %}selected{% endif %}>
-                                    {{ org_membership.organization.name }}
+                                {% for org in user_organizations %}
+                                <option value="{{ org.id }}"
+                                        {% if org_filter == org.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ org.name }}
                                 </option>
                                 {% endfor %}
                             </select>
