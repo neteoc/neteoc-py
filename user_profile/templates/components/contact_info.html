@@ -1,0 +1,28 @@
+{% comment %}
+Reusable contact information component
+Usage: {% load profile_tags %}{% contact_info user organization=current_org %}
+{% endcomment %}
+{% load profile_tags %}
+
+{% if contacts %}
+<div class="contact-info">
+    {% for contact in contacts %}
+    <div class="contact-item d-flex align-items-center mb-1">
+        <i class="bi {{ contact.contact_type|contact_type_icon }} me-2 text-{{ contact.contact_type|contact_type_color }}"></i>
+        <span class="contact-value">{{ contact.value }}</span>
+        {% if contact.is_primary %}
+        <span class="badge bg-warning text-dark ms-2 small">PRIMARY</span>
+        {% endif %}
+        {% if organization and contact.organization %}
+        <small class="text-muted ms-2">({{ contact.organization.name }})</small>
+        {% elif not organization and not contact.organization %}
+        <small class="text-muted ms-2">(Global)</small>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="contact-info text-muted">
+    <small>No contact information available</small>
+</div>
+{% endif %}

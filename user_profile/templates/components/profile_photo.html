@@ -1,0 +1,12 @@
+{% comment %}
+Reusable profile photo component with Gravatar fallback
+Usage: {% load profile_tags %}{% profile_photo user size="large" css_class="rounded-circle" %}
+{% endcomment %}
+
+<img src="{{ photo_url }}"
+     alt="{{ alt_text }}"
+     width="{{ size_pixels }}"
+     height="{{ size_pixels }}"
+     class="profile-photo {{ css_class }}"
+     loading="lazy"
+     onerror="this.onerror=null; this.src='/static/icons/person-circle.svg';">

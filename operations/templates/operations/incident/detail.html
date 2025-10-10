@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
+{% load profile_tags %}
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>
@@ -152,9 +153,7 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center">
-                            <div class="avatar-circle bg-primary text-white me-3">
-                                <i class="fa fa-user"></i>
-                            </div>
+                            {% profile_photo incident.incident_commander size="small" css_class="me-3 rounded-circle" %}
                             <div>
                                 <h6 class="mb-1">{{ incident.incident_commander.get_full_name|default:incident.incident_commander.username }}</h6>
                                 <small class="text-muted">Primary Point of Contact</small>

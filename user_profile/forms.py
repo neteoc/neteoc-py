@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm
-from .models import UserProfile, Address
+from .models import UserProfile, Address, Contact
 import re
 
 
@@ -258,6 +258,8 @@ class PublicUserProfileForm(ModelForm):
             "public_email",
             "public_email_visible",
             "public_visible",
+            "use_gravatar",
+            "gravatar_email",
         ]
         widgets = {
             "public_bio": forms.Textarea(
@@ -273,4 +275,140 @@ class PublicUserProfileForm(ModelForm):
             "public_phone_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "public_email_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "public_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "use_gravatar": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "gravatar_email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "Email for Gravatar (optional)"}
+            ),
         }
+
+
+class ContactForm(ModelForm):
+    """
+    Form for creating/editing user contact information
+    """
+
+    class Meta:
+        model = Contact
+        fields = ["contact_type", "value", "organization", "is_primary"]
+        widgets = {
+            "contact_type": forms.Select(
+                attrs={"class": "form-select"}, choices=Contact.CONTACT_TYPES
+            ),
+            "value": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Enter email or phone number"}
+            ),
+            "organization": forms.Select(attrs={"class": "form-select"}),
+            "is_primary": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        # Filter organization choices to user's memberships
+        if self.user:
+            from operations.models import IncidentOrganization
+            from organizations.models import OrganizationUser
+
+            user_orgs = OrganizationUser.objects.filter(user=self.user).values_list(
+                "organization_id", flat=True
+            )
+            self.fields["organization"].queryset = IncidentOrganization.objects.filter(
+                id__in=user_orgs
+            )
+
+        # Add empty choice for organization (global contact)
+        org_choices = list(self.fields["organization"].choices)
+        org_choices.insert(0, ("", "Global (no organization)"))
+        self.fields["organization"].choices = org_choices
+        self.fields["organization"].required = False
+
+    def clean_value(self):
+        """Validate contact value based on contact type"""
+        value = self.cleaned_data.get("value", "").strip()
+        contact_type = self.cleaned_data.get("contact_type")
+
+        if not value:
+            raise forms.ValidationError("Contact value is required.")
+
+        if contact_type == "EMAIL":
+            from django.core.validators import EmailValidator
+
+            validator = EmailValidator()
+            try:
+                validator(value)
+            except forms.ValidationError:
+                raise forms.ValidationError("Enter a valid email address.")
+
+        elif contact_type == "PHONE":
+            # Basic phone validation - allow digits, spaces, hyphens, parentheses, plus
+            if not re.match(r"^[\d\-\(\)\s\+\.]+$", value):
+                raise forms.ValidationError(
+                    "Enter a valid phone number (digits, spaces, hyphens, parentheses, and plus signs only)."
+                )
+
+        return value
+
+    def clean(self):
+        """Additional validation for contact constraints"""
+        cleaned_data = super().clean()
+
+        if not self.user:
+            raise forms.ValidationError("User must be specified.")
+
+        contact_type = cleaned_data.get("contact_type")
+        value = cleaned_data.get("value")
+        organization = cleaned_data.get("organization")
+
+        # Check for duplicate contact
+        if contact_type and value:
+            existing = Contact.objects.filter(
+                user=self.user,
+                contact_type=contact_type,
+                value=value,
+                organization=organization,
+                is_active=True,
+            )
+
+            # Exclude current instance if editing
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+
+            if existing.exists():
+                raise forms.ValidationError(
+                    f"A {contact_type.lower()} contact with this value already exists for this organization context."
+                )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Save the contact with proper primary contact handling"""
+        contact = super().save(commit=False)
+        contact.user = self.user
+
+        if commit:
+            # If setting as primary, unset other primary contacts of same type
+            if contact.is_primary:
+                Contact.objects.filter(
+                    user=self.user,
+                    organization=contact.organization,
+                    contact_type=contact.contact_type,
+                    is_primary=True,
+                    is_active=True,
+                ).update(is_primary=False)
+
+            contact.save()
+
+        return contact
+
+
+class ContactDeleteForm(forms.Form):
+    """
+    Form for confirming contact deletion (soft delete)
+    """
+
+    confirm = forms.BooleanField(
+        required=True,
+        label="I confirm I want to delete this contact",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
