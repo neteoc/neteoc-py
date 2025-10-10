@@ -3,6 +3,8 @@ from django.http import Http404, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -28,6 +30,8 @@ PROFILE_URL = "user_profile:profile"
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
+@never_cache
 def profile(request):
     """
     Allow users to manage their profile including roster ID and address
@@ -140,6 +144,8 @@ class UserRosterAPIView(APIView):
 
 
 @login_required()
+@require_http_methods(["GET", "POST"])
+@never_cache
 def edit_public_profile(request):
     user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
     if request.method == "POST":
@@ -266,6 +272,8 @@ def contact_list(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+@never_cache
 def contact_create(request):
     """
     Create a new contact
@@ -290,6 +298,8 @@ def contact_create(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+@never_cache
 def contact_edit(request, contact_id):
     """
     Edit an existing contact
@@ -317,6 +327,8 @@ def contact_edit(request, contact_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+@never_cache
 def contact_delete(request, contact_id):
     """
     Soft delete a contact (confirmation required)
